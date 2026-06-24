@@ -18,11 +18,13 @@ import {
   Sparkles,
   Bookmark,
   Award,
-  Crown
+  Crown,
+  MessageSquare
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getProfileImageUrl } from "../lib/imageUtils";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { io } from "socket.io-client";
 import MockeefyLogo from "./MockeefyLogo";
 import Avatar from "./ui/avatar";
 
@@ -52,7 +54,7 @@ const Navigation = () => {
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
 
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const { data: userProfile } = useUserProfile();
   const profileImage = user?.profileImage || userProfile?.data?.profileImage;
 
@@ -73,6 +75,32 @@ const Navigation = () => {
     const interval = setInterval(fetchNotifications, 60000);
     return () => clearInterval(interval);
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !token) return;
+
+    const socket = io(import.meta.env.VITE_API_URL || "http://localhost:5000", {
+      auth: { token },
+    });
+
+    socket.on("new_notification", (notification) => {
+      const formatted: Notification = {
+        _id: notification._id,
+        type: notification.type || "info",
+        title: notification.title,
+        message: notification.message,
+        isRead: false,
+        createdAt: notification.createdAt || new Date().toISOString(),
+        metadata: notification.metadata,
+      };
+      setNotifications((prev) => [formatted, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user, token]);
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -247,6 +275,19 @@ const Navigation = () => {
 
             {/* Right side: Actions */}
             <div className="hidden md:flex items-center space-x-1 lg:space-x-3">
+
+              {/* Chat / Messages */}
+              <div className="relative">
+                <button
+                  className="p-2.5 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-50 transition-all active:scale-95 relative"
+                  aria-label="Messages"
+                >
+                  <MessageSquare size={18} />
+                  <span className="absolute top-1.5 right-1.5 bg-rose-500 text-white text-[8px] rounded-full h-4 w-4 flex items-center justify-center font-bold border-2 border-white">
+                    3
+                  </span>
+                </button>
+              </div>
 
               {/* Notifications */}
               <div className="relative" ref={notificationRef}>

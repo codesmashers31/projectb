@@ -62,6 +62,7 @@ import SkillManagement from "./pages/admin/SkillManagement";
 import BookingSearch from "./pages/admin/BookingSearch"; // Demo route
 import PayoutManagement from "./pages/admin/PayoutManagement";
 import { usePageTitle } from "./hooks/usePageTitle";
+import MockeefyLogo from "./components/MockeefyLogo";
 
 
 const queryClient = new QueryClient();
@@ -77,8 +78,16 @@ function AppRoutes() {
   // This solves the flicker issue completely.
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50/50">
+        <div className="relative flex items-center justify-center">
+          {/* Spinning outer ring */}
+          <div className="absolute w-20 h-20 rounded-2xl border-2 border-transparent border-t-blue-600 border-r-blue-600/30 animate-spin"></div>
+          {/* Pulsing brand logo */}
+          <MockeefyLogo className="h-12 w-12 rounded-xl animate-pulse shadow-md relative z-10" />
+        </div>
+        <p className="mt-4 text-[10px] font-black tracking-widest text-blue-600/80 uppercase animate-pulse">
+          Loading Mockeefy...
+        </p>
       </div>
     );
   }

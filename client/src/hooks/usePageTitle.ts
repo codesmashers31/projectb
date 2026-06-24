@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import favicon from '../assets/logo/favicon.png';
 
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Mockeefy - Practice Interviews',
@@ -71,23 +72,6 @@ const getTitleForRoute = (pathname: string): string => {
 };
 
 /**
- * Create a data URI for the Mockeefy logo favicon - Exact M logo match
- */
-const createLogoDataUri = (): string => {
-  const svg = `<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-    <!-- Bold Blue Rounded Square Background -->
-    <rect x="8" y="8" width="112" height="112" rx="28" fill="#004FCB" />
-    
-    <!-- White M Letter -->
-    <text x="64" y="90" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">M</text>
-  </svg>`;
-
-  // Encode SVG to data URI
-  const encoded = encodeURIComponent(svg);
-  return `data:image/svg+xml;charset=utf-8,${encoded}`;
-};
-
-/**
  * Custom hook to manage dynamic page title and favicon
  */
 export const usePageTitle = () => {
@@ -109,8 +93,7 @@ export const usePageTitle = () => {
     }
 
     // Set the logo favicon
-    const faviconUri = createLogoDataUri();
-    faviconLink.href = faviconUri;
-    faviconLink.type = 'image/svg+xml';
+    faviconLink.href = favicon;
+    faviconLink.type = 'image/png';
   }, [location.pathname]);
 };

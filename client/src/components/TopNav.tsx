@@ -135,30 +135,21 @@ export default function TopNav({ onOpenSidebar }: { onOpenSidebar?: () => void }
 
   return (
     <header className="h-[80px] w-full bg-white border-b border-gray-100 px-6 flex items-center justify-between sticky top-0 z-40">
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex items-center gap-4">
         <button onClick={onOpenSidebar} className="xl:hidden p-2 text-gray-500 hover:text-blue-600 rounded-lg">
           <Menu size={24} />
         </button>
-
-        <div className="hidden md:flex items-center bg-[#f8faff] border border-gray-100 rounded-2xl px-5 py-3 w-[460px] max-w-full group focus-within:ring-2 focus-within:ring-[#3b5cf1]/20 focus-within:border-[#3b5cf1]/30 transition-all">
-          <Search size={18} className="text-[#9ca3af] mr-3" />
-          <input
-            type="text"
-            placeholder="Search sessions, candidates..."
-            className="bg-transparent border-none outline-none text-[14px] text-gray-700 w-full placeholder:text-[#9ca3af] font-medium"
-          />
-        </div>
       </div>
 
       <div className="flex items-center space-x-6">
-        <div className="relative" ref={notificationsRef}>
+        <div className="relative flex items-center" ref={notificationsRef}>
           <button
             onClick={() => {
               setIsNotificationsOpen((s) => !s);
               setIsProfileOpen(false);
               if (!isNotificationsOpen && user) fetchNotifications();
             }}
-            className="text-[#9ca3af] hover:text-[#3b5cf1] transition-colors relative"
+            className="text-[#9ca3af] hover:text-[#3b5cf1] transition-colors relative flex items-center justify-center"
             aria-label="Notifications"
           >
             <Bell size={22} strokeWidth={2} />
@@ -195,14 +186,14 @@ export default function TopNav({ onOpenSidebar }: { onOpenSidebar?: () => void }
           )}
         </div>
 
-        <button className="text-[#9ca3af] hover:text-[#3b5cf1] transition-colors">
+        <button className="text-[#9ca3af] hover:text-[#3b5cf1] transition-colors flex items-center justify-center">
           <HelpCircle size={22} strokeWidth={2} />
         </button>
 
         {/* Separator */}
-        <div className="w-px h-8 bg-gray-200 mx-2"></div>
+        <div className="w-px h-8 bg-gray-200 mx-2 self-center"></div>
 
-        <div className="relative" ref={profileRef}>
+        <div className="relative flex items-center" ref={profileRef}>
           <button
             onClick={() => {
               setIsProfileOpen((s) => !s);

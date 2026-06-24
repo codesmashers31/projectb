@@ -43,7 +43,7 @@ export const ExpertsCarousel = ({ title, profiles, onSeeAll }: ExpertsCarouselPr
                     {title ? (
                         <>
                             <h2 className="text-xl font-bold text-gray-900 tracking-tight">{title}</h2>
-                            <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Top Rated Mentors</p>
+                            <p className="text-xs text-slate-500 font-semibold tracking-normal">Top Rated Mentors</p>
                         </>
                     ) : (
                         <h2 className="text-xl font-bold text-gray-900">
@@ -86,7 +86,7 @@ export const ExpertsCarousel = ({ title, profiles, onSeeAll }: ExpertsCarouselPr
             <div className="overflow-hidden md:mx-0 pb-8" ref={emblaRef}>
                 <div className="flex gap-5 md:gap-6 py-2 px-3 md:px-4">
                     {profiles.map((profile) => (
-                        <div key={profile.id} className="flex-[0_0_300px] md:flex-[0_0_340px] min-w-0 flex shrink-0">
+                        <div key={profile.id} className="flex-[0_0_320px] md:flex-[0_0_360px] min-w-0 flex shrink-0">
                             <MentorJobCard mentor={profile} />
                         </div>
                     ))}

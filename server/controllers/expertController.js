@@ -1288,7 +1288,8 @@ export const getVerifiedExperts = async (req, res) => {
           country: expert.userDetails?.personalInfo?.country || expert.personalInformation?.country || "",
           state: expert.userDetails?.personalInfo?.state || expert.personalInformation?.state || "",
           city: expert.userDetails?.personalInfo?.city || expert.personalInformation?.city || "",
-          category: expert.personalInformation?.category || "IT"
+          category: expert.personalInformation?.category || "IT",
+          bio: expert.userDetails?.personalInfo?.bio || expert.personalInformation?.bio || ""
         },
         professionalDetails: {
           title: expert.professionalDetails?.title || "",
@@ -1376,7 +1377,8 @@ export const getAllExperts = async (req, res) => {
         reviews: 32,
         responseTime: "1 hour",
         successRate: 92,
-        isVerified: true
+        isVerified: true,
+        bio: expert.userId?.personalInfo?.bio || expert.personalInformation?.bio || ""
       };
     }));
 

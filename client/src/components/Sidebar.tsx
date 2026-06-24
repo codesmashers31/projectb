@@ -9,7 +9,8 @@ import {
   TrendingUp,
   ShieldCheck,
   Bookmark,
-  Award
+  Award,
+  Pencil
 } from "lucide-react";
 import axios from '../lib/axios';
 import { useNavigate, useLocation } from "react-router-dom";
@@ -88,8 +89,11 @@ const Sidebar = () => {
     <div className="w-full max-w-[240px] mx-auto space-y-4 font-sans">
 
       {/* CARD 1: IDENTITY */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm">
-        <div className="flex items-center gap-3 mb-4">
+      <div 
+        onClick={() => navigate("/profile")}
+        className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm cursor-pointer hover:shadow-md hover:border-blue-200/80 hover:bg-slate-50/10 transition-all duration-300 group/profile-card"
+      >
+        <div className="flex items-center gap-3">
           <div className="relative shrink-0">
             <div className="relative w-11 h-11 flex items-center justify-center">
               <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90" viewBox="0 0 44 44">
@@ -113,19 +117,20 @@ const Sidebar = () => {
               </div>
             </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-elite truncate tracking-tight">{displayProfile.name}</h3>
-            <p className="text-[8px] font-black text-blue-600 tracking-widest mt-1 uppercase truncate">
-              {roleLine}
-            </p>
+          <div className="min-w-0 flex-1 flex items-center justify-between gap-1.5">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-elite truncate tracking-tight text-gray-900 group-hover/profile-card:text-[#004fcb] transition-colors">
+                {displayProfile.name}
+              </h3>
+              <p className="text-[8px] font-black text-blue-600 tracking-widest mt-1 uppercase truncate">
+                {roleLine}
+              </p>
+            </div>
+            <div className="p-1.5 rounded-lg bg-slate-50 text-slate-400 group-hover/profile-card:bg-blue-50 group-hover/profile-card:text-[#004fcb] transition-all shrink-0">
+              <Pencil size={11} className="stroke-[2.5]" />
+            </div>
           </div>
         </div>
-        <button
-          onClick={() => navigate("/profile")}
-          className="w-full py-1.5 bg-slate-50 hover:bg-elite-blue hover:text-white rounded-lg text-[9px] font-black tracking-tight transition-all border border-slate-100/50"
-        >
-          Manage Profile
-        </button>
       </div>
 
       {/* CARD 2: NAVIGATION — correct process: Overview → Profile → Sessions → Career → Saved → Certificates */}

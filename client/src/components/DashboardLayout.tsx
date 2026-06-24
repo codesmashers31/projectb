@@ -8,21 +8,16 @@ import { useAuth } from "../context/AuthContext";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
+    hideSidebars?: boolean;
 }
 
-/** Left sidebar (quick nav) on main user pages. */
-const SHOW_LEFT_SIDEBAR_PATHS = [
-    "/",
-    "/book-session",
-    "/career-hub",
-];
-
-const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
+const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children, hideSidebars = false }) => {
     const { pathname } = useLocation();
     const { isLoading, user } = useAuth();
     const showSkeletons = isLoading;
     const isLoggedIn = !!user?.id;
-    const showLeftSidebar = (isLoggedIn || showSkeletons) && SHOW_LEFT_SIDEBAR_PATHS.includes(pathname);
+    const showLeftSidebar = !hideSidebars && (isLoggedIn || showSkeletons);
+    const showRightSidebar = !hideSidebars && (isLoggedIn || showSkeletons);
 
     return (
         <div className="min-h-screen bg-white flex flex-col font-sans text-gray-900">
@@ -37,7 +32,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
                     {/* Left Sidebar - only on Overview (/) ; on Sessions/Profile only main content (experts etc.) shows */}
                     {showLeftSidebar && (
-                        <aside className="hidden lg:block w-[240px] shrink-0 sticky top-16 self-start">
+                        <aside className="hidden lg:block w-[240px] shrink-0 sticky top-[84px] max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide self-start">
                             <div className="space-y-4">
                                 {showSkeletons ? <SkeletonSidebar /> : <Sidebar />}
                             </div>
@@ -45,13 +40,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     )}
 
                     {/* Main Content Area - expands when left sidebar is hidden */}
-                    <section className="flex-1 min-w-0 w-full max-w-full overflow-hidden animate-in fade-in duration-500">
+                    <section className="flex-1 min-w-0 w-full max-w-full overflow-clip animate-in fade-in duration-500">
                         {children}
                     </section>
 
                     {/* Right Sidebar - show on laptop and above */}
-                    {(isLoggedIn || showSkeletons) && (
-                        <aside className="hidden lg:block w-[280px] shrink-0 sticky top-16 self-start">
+                    {showRightSidebar && (
+                        <aside className="hidden lg:block w-[280px] shrink-0 sticky top-[84px] max-h-[calc(100vh-100px)] overflow-y-auto scrollbar-hide self-start">
                             <div className="space-y-4">
                                 {showSkeletons ? <SkeletonInfoPanel /> : <InfoPanel />}
                             </div>
@@ -59,7 +54,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     )}
                 </div>
                 {/* Book experts & pipeline below main only on mobile/tablet */}
-                {(isLoggedIn || showSkeletons) && (
+                {showRightSidebar && (
                     <div className="lg:hidden w-full mt-6">
                         {showSkeletons ? <SkeletonInfoPanel /> : <InfoPanel fullWidth />}
                     </div>

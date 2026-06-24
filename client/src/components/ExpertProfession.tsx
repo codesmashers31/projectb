@@ -224,9 +224,6 @@ const ExpertProfession = ({ onUpdate, isMissing, profileData }: ExpertProfession
               return (
                 <span key={idx} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-100">
                   {skillName}
-                  <span className="ml-2 text-xs text-blue-500 bg-white px-1.5 rounded-full border border-blue-100">
-                    {skill.level}
-                  </span>
                 </span>
               );
             })}

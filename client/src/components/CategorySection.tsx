@@ -113,11 +113,11 @@ export const CategorySection = ({ title, profiles, onSeeAll }: CategorySectionPr
                     </button>
                 </div>
 
-                {/* Mobile: vertical stack. Desktop: horizontal scroll, tight spacing no gap */}
+                {/* Horizontal scroll on all devices */}
                 <div
                     ref={rowRef}
                     className={`
-                        flex flex-col gap-4 md:flex-row md:overflow-x-auto pl-0 pr-0 md:pl-0 md:pr-0 pb-1 scrollbar-hide md:snap-x md:snap-mandatory
+                        flex flex-row gap-4 overflow-x-auto pl-0 pr-0 pb-1 scrollbar-hide snap-x snap-mandatory
                         ${isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'}
                     `}
                     onMouseDown={handleMouseDown}
@@ -128,7 +128,7 @@ export const CategorySection = ({ title, profiles, onSeeAll }: CategorySectionPr
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
                 >
                     {profiles.map((profile) => (
-                        <div key={profile.id} className="snap-start shrink-0 w-full md:w-[300px] flex md:mr-5 last:mr-0">
+                        <div key={profile.id} className="snap-start shrink-0 w-[300px] sm:w-[330px] flex">
                             <MentorJobCard mentor={profile} />
                         </div>
                     ))}

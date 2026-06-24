@@ -1,79 +1,54 @@
-
 import { useState, useEffect } from 'react';
 import axios from '../../lib/axios';
 import { toast } from 'sonner';
-import { Plus, Save, Award, X, Check, Lock } from 'lucide-react';
+import { Plus, Save, Award, X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-interface Category {
-    _id: string;
-    name: string;
-}
 
 interface Skill {
     _id: string;
     name: string;
-    categoryId: string;
+    categoryId: {
+        _id: string;
+        name: string;
+    } | string;
 }
 
 interface ExpertSkill {
     skillId: string;
     level: string;
-    // priceAdjustment removed
     isEnabled: boolean;
     name?: string;
 }
 
-
 export default function ExpertSkillManager() {
-    const [categories, setCategories] = useState<Category[]>([]);
     const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
     const [mySkills, setMySkills] = useState<ExpertSkill[]>([]);
-
-    const [selectedCategory, setSelectedCategory] = useState('');
-    const [expertCategoryName, setExpertCategoryName] = useState<string | null>(null); // From profile – read-only
-    const [categoryLocked, setCategoryLocked] = useState(true); // Category cannot be changed once set
-    const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-    const [selectedLevel, setSelectedLevel] = useState('Intermediate');
+    const [searchTerm, setSearchTerm] = useState('');
     const [saveLoading, setSaveLoading] = useState(false);
     const [profileLoading, setProfileLoading] = useState(true);
 
-    // Initial Load: categories + expert profile (for category) + my skills
+    // Initial Load: all active skills + expert profile
     useEffect(() => {
         const init = async () => {
             setProfileLoading(true);
             try {
-                const [catRes, profileRes] = await Promise.all([
-                    axios.get('/api/categories'),
+                const [skillsRes, profileRes] = await Promise.all([
+                    axios.get('/api/skills'),
                     axios.get('/api/expert/profile')
                 ]);
-                setCategories(Array.isArray(catRes.data) ? catRes.data : []);
+                setAvailableSkills(Array.isArray(skillsRes.data) ? skillsRes.data : []);
 
                 const profile = profileRes.data?.profile || {};
                 const skills = profile.expertSkills || [];
                 setMySkills(skills.map((s: any) => ({
                     skillId: s.skillId?._id || s.skillId,
                     name: s.skillId?.name || 'Unknown',
-                    level: s.level,
+                    level: s.level || 'Intermediate',
                     isEnabled: s.isEnabled
                 })));
-
-                const catName = profile.category || '';
-                if (catName) {
-                    setExpertCategoryName(catName);
-                    const cats = Array.isArray(catRes.data) ? catRes.data : [];
-                    const trim = (s: string) => (s || '').trim().toLowerCase();
-                    const match = cats.find((c: Category) => trim(c.name) === trim(catName))
-                        || cats.find((c: Category) => (c.name || '').toLowerCase().includes(catName.trim().toLowerCase()))
-                        || cats.find((c: Category) => catName.trim().toLowerCase().includes((c.name || '').toLowerCase()));
-                    if (match) {
-                        setSelectedCategory(match._id);
-                        const resSkills = await axios.get(`/api/skills/category/${match._id}`);
-                        setAvailableSkills(Array.isArray(resSkills.data) ? resSkills.data : []);
-                    }
-                }
             } catch (e) {
                 console.error(e);
+                toast.error("Failed to load skills profile");
             } finally {
                 setProfileLoading(false);
             }
@@ -81,58 +56,18 @@ export default function ExpertSkillManager() {
         init();
     }, []);
 
-    const handleCategoryChange = async (catId: string) => {
-        if (categoryLocked) return; // No-op when category is locked
-        setSelectedCategory(catId);
-        setSelectedSkills([]);
-        if (!catId) { setAvailableSkills([]); return; }
-
-        try {
-            const resSkills = await axios.get(`/api/skills/category/${catId}`);
-            setAvailableSkills(Array.isArray(resSkills.data) ? resSkills.data : []);
-        } catch (e) { toast.error("Failed to load category data"); }
-    };
-
-    const toggleSkillSelection = (skillId: string) => {
-        setSelectedSkills(prev =>
-            prev.includes(skillId)
-                ? prev.filter(id => id !== skillId)
-                : [...prev, skillId]
-        );
-    };
-
-    const addSkills = () => {
-        if (selectedSkills.length === 0) return;
-
-        const newSkillsToAdd: ExpertSkill[] = [];
-        let duplicateCount = 0;
-
-        selectedSkills.forEach(sId => {
-            if (mySkills.some(s => s.skillId === sId)) {
-                duplicateCount++;
-                return;
-            }
-            const skillObj = availableSkills.find(s => s._id === sId);
-            if (skillObj) {
-                newSkillsToAdd.push({
-                    skillId: sId,
-                    level: selectedLevel,
-                    isEnabled: true,
-                    name: skillObj.name
-                } as any);
-            }
-        });
-
-        if (duplicateCount > 0) {
-            toast.warning(`${duplicateCount} skills were already added.`);
+    const addSkillObj = (skill: Skill) => {
+        if (mySkills.some(s => s.skillId === skill._id)) {
+            toast.warning(`"${skill.name}" is already added.`);
+            return;
         }
-
-        if (newSkillsToAdd.length > 0) {
-            setMySkills([...mySkills, ...newSkillsToAdd]);
-            toast.success(`Added ${newSkillsToAdd.length} skills`);
-            // Reset selection but keep category open for more
-            setSelectedSkills([]);
-        }
+        setMySkills(prev => [...prev, {
+            skillId: skill._id,
+            name: skill.name,
+            level: 'Intermediate',
+            isEnabled: true
+        }]);
+        toast.success(`Added ${skill.name}`);
     };
 
     const removeSkill = (index: number) => {
@@ -146,7 +81,7 @@ export default function ExpertSkillManager() {
         try {
             const payload = mySkills.map(s => ({
                 skillId: s.skillId,
-                level: s.level,
+                level: s.level || 'Intermediate',
                 priceAdjustment: 0,
                 isEnabled: s.isEnabled
             }));
@@ -158,7 +93,7 @@ export default function ExpertSkillManager() {
                 setMySkills(res.data.map((s: any) => ({
                     skillId: s.skillId?._id || s.skillId,
                     name: s.skillId?.name || 'Unknown',
-                    level: s.level,
+                    level: s.level || 'Intermediate',
                     isEnabled: s.isEnabled
                 })));
             }
@@ -170,6 +105,28 @@ export default function ExpertSkillManager() {
             setSaveLoading(false);
         }
     };
+
+    // Filter available skills
+    const filteredSkills = availableSkills.filter(skill => {
+        const nameMatch = skill.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const catName = typeof skill.categoryId === 'object' && skill.categoryId
+            ? (skill.categoryId as any).name || ''
+            : '';
+        const categoryMatch = catName.toLowerCase().includes(searchTerm.toLowerCase());
+        return nameMatch || categoryMatch;
+    });
+
+    // Grouping by category
+    const skillsByCategory: { [key: string]: Skill[] } = {};
+    filteredSkills.forEach(skill => {
+        const catName = typeof skill.categoryId === 'object' && skill.categoryId
+            ? (skill.categoryId as any).name || 'Other'
+            : 'Other';
+        if (!skillsByCategory[catName]) {
+            skillsByCategory[catName] = [];
+        }
+        skillsByCategory[catName].push(skill);
+    });
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-full flex flex-col overflow-hidden">
@@ -202,146 +159,75 @@ export default function ExpertSkillManager() {
                 <div className="space-y-8 max-w-5xl mx-auto">
                     {/* Selection Area */}
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-                            <h2 className="text-lg font-bold text-gray-900 mb-4">Add New Skills</h2>
-
-                            {/* Category: read-only when set (cannot be changed). Skills & languages can be updated. */}
-                            {profileLoading ? (
-                                <div className="text-sm text-gray-500 mb-4">Loading...</div>
-                            ) : !expertCategoryName ? (
-                                <div className="mb-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
-                                    <p className="font-medium">Set your category first</p>
-                                    <p className="mt-1 text-amber-700">Go to <strong>Profile → Personal Info</strong> to set your category. Category cannot be changed once set. Then you can add or remove skills and languages here.</p>
-                                </div>
-                            ) : (
-                                <div className="mb-4 flex items-center gap-2 text-sm text-gray-600">
-                                    <Lock className="w-4 h-4 text-gray-400" />
-                                    <span><strong>Your category:</strong> {expertCategoryName} (cannot be changed)</span>
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                                {/* 1. Category Selection – read-only when expert has category */}
-                                <div className="md:col-span-4 space-y-2">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Step 1: Category</label>
-                                    <select
-                                        className={`w-full h-11 px-3 rounded-lg text-sm font-medium border outline-none transition-all ${categoryLocked || expertCategoryName
-                                            ? "bg-gray-100 border-gray-200 text-gray-700 cursor-not-allowed"
-                                            : "bg-white border-gray-200 focus:ring-2 focus:ring-[#004fcb]/20 focus:border-[#004fcb]"
-                                            }`}
-                                        value={selectedCategory}
-                                        onChange={(e) => handleCategoryChange(e.target.value)}
-                                        disabled={!!expertCategoryName}
-                                        title={expertCategoryName ? "Category cannot be changed" : undefined}
+                        <div className="p-6 border-b border-gray-100 bg-gray-50/50 space-y-4">
+                            <h2 className="text-lg font-bold text-gray-900">Add New Skills</h2>
+                            
+                            {/* Search bar */}
+                            <div className="relative max-w-md">
+                                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Search skills (e.g., React, Java, AWS)..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#004fcb]/20 focus:border-[#004fcb] transition-all"
+                                />
+                                {searchTerm && (
+                                    <button 
+                                        onClick={() => setSearchTerm('')}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-semibold"
                                     >
-                                        <option value="">Choose a category...</option>
-                                        {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                                    </select>
-                                </div>
-
-                                {/* 2. Level Selection – only when category is set */}
-                                {expertCategoryName && (
-                                <>
-                                <div className="md:col-span-4 space-y-2">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Step 2: Proficiency Level</label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                                        {['Beginner', 'Intermediate', 'Advanced', 'Expert'].map((lvl) => (
-                                            <button
-                                                key={lvl}
-                                                onClick={() => setSelectedLevel(lvl)}
-                                                className={`h-11 px-2 rounded-lg text-xs font-bold border transition-all truncate ${selectedLevel === lvl
-                                                    ? "bg-[#004fcb] border-[#004fcb] text-white shadow-md"
-                                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300"
-                                                    }`}
-                                            >
-                                                {lvl}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Add Button */}
-                                <div className="md:col-span-4 flex items-end">
-                                    <button
-                                        onClick={addSkills}
-                                        disabled={selectedSkills.length === 0}
-                                        className={`w-full h-11 flex items-center justify-center gap-2 rounded-lg font-bold transition-all ${selectedSkills.length > 0
-                                            ? "bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg translate-y-0"
-                                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                            }`}
-                                    >
-                                        <Plus className="w-5 h-5" />
-                                        Add {selectedSkills.length > 0 ? `${selectedSkills.length} Skills` : ''}
+                                        Clear
                                     </button>
-                                </div>
-                                </>
                                 )}
                             </div>
                         </div>
 
-                        {/* Skill Selection Grid – only when category is set */}
-                        {expertCategoryName && (
+                        {/* Skill Selection Grid */}
                         <div className="p-6">
-                            <div className="flex justify-between items-center mb-4">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                    Step 3: Select Skills {availableSkills.length > 0 && `(${availableSkills.length} available)`}
-                                </label>
-                                {selectedSkills.length > 0 && (
-                                    <button
-                                        onClick={() => setSelectedSkills([])}
-                                        className="text-xs font-bold text-red-500 hover:text-red-600"
-                                    >
-                                        Clear Selection
-                                    </button>
-                                )}
-                            </div>
-
                             <div className="min-h-[200px]">
-                                {!selectedCategory ? (
+                                {profileLoading ? (
                                     <div className="h-48 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-                                        <Award className="w-8 h-8 mb-2 opacity-50" />
-                                        <p className="text-sm font-medium">Loading skills for your category...</p>
+                                        <Award className="w-8 h-8 mb-2 opacity-50 animate-pulse" />
+                                        <p className="text-sm font-medium">Loading available skills...</p>
                                     </div>
-                                ) : availableSkills.length === 0 ? (
+                                ) : Object.keys(skillsByCategory).length === 0 ? (
                                     <div className="h-48 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-                                        <p className="text-sm">No skills found in this category</p>
+                                        <p className="text-sm">No skills found matching your search</p>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-wrap gap-3">
-                                        {availableSkills.map(skill => {
-                                            const isSelected = selectedSkills.includes(skill._id);
-                                            const isAlreadyAdded = mySkills.some(ms => ms.skillId === skill._id);
-
-                                            if (isAlreadyAdded) return null; // Don't show already added skills in selection list
+                                    <div className="space-y-6">
+                                        {Object.entries(skillsByCategory).map(([catName, skills]) => {
+                                            const displaySkills = skills.filter(s => !mySkills.some(ms => ms.skillId === s._id));
+                                            if (displaySkills.length === 0) return null;
 
                                             return (
-                                                <button
-                                                    key={skill._id}
-                                                    onClick={() => toggleSkillSelection(skill._id)}
-                                                    className={`group relative flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 border ${isSelected
-                                                        ? "bg-[#004fcb] border-[#004fcb] text-white shadow-md pr-9"
-                                                        : "bg-white border-gray-200 text-gray-700 hover:border-[#004fcb] hover:shadow-sm hover:text-[#004fcb]"
-                                                        }`}
-                                                >
-                                                    {skill.name}
-                                                    {isSelected && (
-                                                        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center bg-white/20 rounded-full">
-                                                            <Check className="w-3.5 h-3.5 text-white" />
-                                                        </div>
-                                                    )}
-                                                </button>
+                                                <div key={catName} className="space-y-2">
+                                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">{catName}</h3>
+                                                    <div className="flex flex-wrap gap-2.5">
+                                                        {displaySkills.map(skill => (
+                                                            <button
+                                                                key={skill._id}
+                                                                onClick={() => addSkillObj(skill)}
+                                                                className="group flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 border border-gray-200 hover:border-[#004fcb] rounded-full text-xs font-semibold text-gray-700 hover:text-[#004fcb] transition-all active:scale-95 shadow-sm"
+                                                            >
+                                                                {skill.name}
+                                                                <Plus className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#004fcb]" />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
                                             );
                                         })}
-                                        {availableSkills.every(s => mySkills.some(ms => ms.skillId === s._id)) && (
+                                        {availableSkills.length > 0 && availableSkills.every(s => mySkills.some(ms => ms.skillId === s._id)) && (
                                             <div className="w-full text-center py-8 text-gray-400 text-sm">
-                                                All skills from this category are already added to your profile!
+                                                All available skills are already added to your profile!
                                             </div>
                                         )}
                                     </div>
                                 )}
                             </div>
                         </div>
-                        )}
                     </div>
 
                     {/* Selected Skills Preview (The "My Skills" Section) */}
@@ -357,7 +243,7 @@ export default function ExpertSkillManager() {
                                     <Award className="w-6 h-6" />
                                 </div>
                                 <h3 className="text-gray-900 font-bold mb-1">No Skills Added</h3>
-                                <p className="text-sm text-gray-500">Select a category and add skills above to build your profile.</p>
+                                <p className="text-sm text-gray-500">Search and add skills above to build your profile.</p>
                             </div>
                         ) : (
                             <div className="flex flex-wrap gap-3">
@@ -369,22 +255,17 @@ export default function ExpertSkillManager() {
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.9 }}
                                             layout
-                                            className="group flex items-center gap-3 pl-4 pr-2 py-2 bg-white border border-gray-200 rounded-full shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
+                                            className="group flex items-center gap-2 pl-4 pr-1.5 py-1.5 bg-blue-50/50 border border-blue-100 rounded-full shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
                                         >
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-gray-900 leading-none">
-                                                    {skill.name || 'Unknown Skill'}
-                                                </span>
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mt-0.5">
-                                                    {skill.level}
-                                                </span>
-                                            </div>
+                                            <span className="text-sm font-semibold text-blue-900">
+                                                {skill.name || 'Unknown Skill'}
+                                            </span>
                                             <button
                                                 onClick={() => removeSkill(index)}
-                                                className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                                className="w-6 h-6 flex items-center justify-center rounded-full text-blue-400 hover:bg-red-50 hover:text-red-500 transition-colors"
                                                 title="Remove skill"
                                             >
-                                                <X className="w-4 h-4" />
+                                                <X className="w-3.5 h-3.5" />
                                             </button>
                                         </motion.div>
                                     ))}
