@@ -51,63 +51,59 @@ export default function UserProfile() {
   const warnings: string[] = profileData?.profileWarnings || [];
 
   return (
-    <div className="animate-in fade-in duration-500 pb-12 bg-[#FAFAFA] min-h-[calc(100vh-80px)] font-sans">
-      <div className="max-w-[1100px] mx-auto px-4 pt-4 sm:pt-6 space-y-5">
+    <div className="w-full bg-white border border-slate-200/80 rounded-[24px] p-6 md:p-8 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] overflow-hidden pb-12 font-sans">
+      <div className="w-full space-y-6">
         
         {/* Header Section: Title, Completion, Resume Button */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="space-y-1.5">
-              <h1 className="text-xl font-bold text-slate-900 leading-tight">
-                Profile Settings
-              </h1>
-              <p className="text-xs text-slate-500">
-                Manage your credentials and preferences to optimize your candidate profile.
-              </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-5">
+          <div className="space-y-1.5">
+            <h1 className="text-xl font-bold text-slate-900 leading-tight">
+              Profile Settings
+            </h1>
+            <p className="text-xs text-slate-500">
+              Manage your credentials and preferences to optimize your candidate profile.
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Progress Box */}
+            <div className="px-3.5 py-2 bg-slate-50 rounded-xl border border-slate-100/80 text-right min-w-[110px]">
+              <p className="text-[9px] uppercase font-bold text-slate-400">Completion</p>
+              <p className="text-xl font-black text-blue-600 mt-0.5">{isLoading ? "..." : `${completion}%`}</p>
             </div>
-            
-            <div className="flex items-center gap-3 shrink-0">
-              {/* Progress Box */}
-              <div className="px-3.5 py-2 bg-slate-50 rounded-xl border border-slate-100/80 text-right min-w-[110px]">
-                <p className="text-[9px] uppercase font-bold text-slate-400">Completion</p>
-                <p className="text-xl font-black text-blue-600 mt-0.5">{isLoading ? "..." : `${completion}%`}</p>
-              </div>
 
-              {/* Resume Templates Button */}
-              <button
-                onClick={() => setShowResumeBuilder(true)}
-                className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-950 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-sm active:scale-95 h-12"
-              >
-                <FileText size={14} className="text-blue-400" />
-                <span>Resume Templates</span>
-              </button>
-            </div>
+            {/* Resume Templates Button */}
+            <button
+              onClick={() => setShowResumeBuilder(true)}
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-950 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-sm active:scale-95 h-12"
+            >
+              <FileText size={14} className="text-blue-400" />
+              <span>Resume Templates</span>
+            </button>
           </div>
         </div>
 
         {/* Tab Navigation (Horizontal Scrollable) */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-2 shadow-sm">
-          <div className="flex gap-1.5 overflow-x-auto pb-1.5 pt-0.5 px-0.5 scrollbar-hide snap-x no-scrollbar">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`
-                    flex items-center gap-2 px-4 py-2 text-xs font-bold transition-all rounded-xl border whitespace-nowrap snap-start shrink-0
-                    ${isActive 
-                       ? "bg-[#004fcb] text-white border-[#004fcb] shadow-sm" 
-                       : "bg-white text-slate-600 border-slate-200 hover:text-slate-900"}
-                  `}
-                >
-                  <Icon size={13} className={isActive ? "text-white" : "text-slate-400"} />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex gap-1.5 overflow-x-auto pb-3 pt-0.5 px-0.5 border-b border-slate-100 no-scrollbar">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  flex items-center gap-2 px-4 py-2 text-xs font-bold transition-all rounded-xl border whitespace-nowrap snap-start shrink-0
+                  ${isActive 
+                     ? "bg-[#004fcb] text-white border-[#004fcb] shadow-sm" 
+                     : "bg-white text-slate-600 border-slate-200 hover:text-slate-900"}
+                `}
+              >
+                <Icon size={13} className={isActive ? "text-white" : "text-slate-400"} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Warnings Canvas */}
@@ -130,7 +126,7 @@ export default function UserProfile() {
         )}
 
         {/* Active Content Canvas */}
-        <div className="bg-white border border-slate-200/80 shadow-sm rounded-2xl p-5 md:p-6 min-h-[360px] md:min-h-[480px]">
+        <div className="min-h-[360px] md:min-h-[480px] pt-2">
           {isLoading ? (
             <div className="w-full flex flex-col items-center justify-center text-slate-400 gap-3 min-h-[300px]">
               <div className="w-6 h-6 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>

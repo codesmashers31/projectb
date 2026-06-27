@@ -1050,7 +1050,7 @@ export const getPendingExperts = async (req, res) => {
       return {
         _id: expert._id,
         userId: expert.userId,
-        profileImage: expert.profileImage || "",
+        profileImage: expert.userDetails?.profileImage || expert.profileImage || "",
         price,
         education: expert.education || [],
         personalInformation: {
@@ -1133,7 +1133,7 @@ export const getRejectedExperts = async (req, res) => {
       return {
         _id: expert._id,
         userId: expert.userId,
-        profileImage: expert.profileImage || "",
+        profileImage: expert.userDetails?.profileImage || expert.profileImage || "",
         education: expert.education || [],
         personalInformation: {
           userName: expert.userDetails?.name || "Expert",
@@ -1274,7 +1274,7 @@ export const getVerifiedExperts = async (req, res) => {
       return {
         _id: expert._id,
         userId: expert.userId,
-        profileImage: expert.profileImage || "",
+        profileImage: expert.userDetails?.profileImage || expert.profileImage || "",
         price: price, // Dynamic Price
         metrics: {
           avgRating: expert.avgRating || 0,

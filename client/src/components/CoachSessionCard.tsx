@@ -241,13 +241,20 @@ const CoachSessionCard = React.memo(function CoachSessionCard() {
   };
 
   return (
-    <div className="w-full max-w-full pb-16">
-      <div className="w-full space-y-6 mt-6">
+    <div className="w-full bg-white border border-slate-200/80 rounded-[24px] p-6 md:p-8 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] overflow-hidden">
+      <div className="w-full space-y-8">
         
         {/* Header Title block */}
-        <div className="text-left space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">Find the Right Expert for You</h1>
-          <p className="text-sm font-semibold text-slate-500">Connect with verified industry experts from top companies and accelerate your career.</p>
+        <div className="text-left flex flex-col gap-1 border-b border-slate-100/80 pb-4">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-100/30 text-[#4F46E5] text-[9px] font-black uppercase tracking-wider w-fit">
+            Expert Directory
+          </span>
+          <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight leading-tight mt-1">
+            Find the Right Expert for You
+          </h1>
+          <p className="text-xs text-slate-500 font-medium leading-relaxed">
+            Connect with verified industry experts from top companies and accelerate your career.
+          </p>
         </div>
 
         {/* Experts Grid Container */}
@@ -285,6 +292,71 @@ const CoachSessionCard = React.memo(function CoachSessionCard() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Bottom Trust Signals Bar */}
+        <div className="mt-12 bg-slate-50/60 border border-slate-100 rounded-3xl p-6 md:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.02)]">
+          {/* Signal 1 */}
+          <div className="flex items-center gap-3.5 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 11 2 2 4-4" stroke="currentColor" strokeWidth="2.5" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 leading-tight">Verified Experts</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">100% Background Verified</p>
+            </div>
+          </div>
+          
+          {/* Signal 2 */}
+          <div className="flex items-center gap-3.5 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                <path d="M4 22h16" />
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 leading-tight">Top Professionals</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">From FAANG & Top Companies</p>
+            </div>
+          </div>
+
+          {/* Signal 3 */}
+          <div className="flex items-center gap-3.5 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 leading-tight">Trusted by 10K+ Users</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Successful Career Transitions</p>
+            </div>
+          </div>
+
+          {/* Signal 4 */}
+          <div className="flex items-center gap-3.5 text-left">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-900 leading-tight">Secure Sessions</p>
+              <p className="text-xs text-slate-500 font-medium mt-1">Safe & Private 1:1 Sessions</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -158,20 +158,6 @@ const RecommendedMentors = () => {
             {/* Scroll Container */}
             <div className="relative group/scroll">
 
-                {/* Left Arrow */}
-                <button
-                    onClick={() => scroll('left')}
-                    className={`
-                        absolute left-0 top-1/2 -translate-y-1/2 z-20 
-                        w-10 h-10 bg-white border border-gray-100 shadow-lg rounded-full 
-                        flex items-center justify-center text-gray-700 hover:text-[#004fcb] hover:scale-105 transition-all
-                        ${!showLeftArrow ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-                        -ml-5 hidden md:flex
-                    `}
-                >
-                    <ChevronLeft className="w-5 h-5" />
-                </button>
-
                 {/* Content Area */}
                 <div
                     ref={scrollContainerRef}
@@ -198,21 +184,34 @@ const RecommendedMentors = () => {
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* Right Arrow */}
+            {/* Bottom Controls (Arrows) */}
+            <div className="flex justify-center items-center gap-3 mt-6">
+                <button
+                    onClick={() => scroll('left')}
+                    className={`
+                        w-9 h-9 rounded-full border border-gray-200 bg-white shadow-sm
+                        flex items-center justify-center text-gray-700 hover:text-[#004fcb] hover:border-blue-200 transition-all hover:scale-105 active:scale-95
+                        ${!showLeftArrow ? 'opacity-30 cursor-not-allowed' : 'opacity-100'}
+                    `}
+                    disabled={!showLeftArrow}
+                    aria-label="Previous"
+                >
+                    <ChevronLeft className="w-4 h-4" />
+                </button>
                 <button
                     onClick={() => scroll('right')}
                     className={`
-                        absolute right-0 top-1/2 -translate-y-1/2 z-20 
-                        w-10 h-10 bg-white border border-gray-100 shadow-lg rounded-full 
-                        flex items-center justify-center text-gray-700 hover:text-[#004fcb] hover:scale-105 transition-all
-                        ${!showRightArrow ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-                        -mr-5 hidden md:flex
+                        w-9 h-9 rounded-full border border-gray-200 bg-white shadow-sm
+                        flex items-center justify-center text-gray-700 hover:text-[#004fcb] hover:border-blue-200 transition-all hover:scale-105 active:scale-95
+                        ${!showRightArrow ? 'opacity-30 cursor-not-allowed' : 'opacity-100'}
                     `}
+                    disabled={!showRightArrow}
+                    aria-label="Next"
                 >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-4 h-4" />
                 </button>
-
             </div>
         </section>
     );
