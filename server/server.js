@@ -68,7 +68,7 @@ const allowedOrigins = [
   "https://mockeefy.com",
   "https://www.mockeefy.com",
   "https://mockeefy.onrender.com",
-  "https://newprojectmockeefy.onrender.com",
+  "https://projectb-yqmq.onrender.com",
   process.env.CLIENT_URL,
   process.env.FRONTEND_URL,
 ].filter(Boolean);
