@@ -22,11 +22,9 @@ export const useUserProfile = () => {
             const response = await axios.get('/api/user/profile', {
                 headers: { userid: userId }
             });
-            return response.data;
+            return response.data.success ? response.data.data : null;
         },
         enabled: !!userId,
-        staleTime: 1000 * 60 * 5, // 5 minutes
-        // Use context user as placeholder data if available, to prevent flickers
-        placeholderData: user ? { success: true, data: user } : undefined
+        placeholderData: user || undefined
     });
 };

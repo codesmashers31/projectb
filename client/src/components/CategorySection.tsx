@@ -86,12 +86,6 @@ export const CategorySection = ({ title, profiles, onSeeAll }: CategorySectionPr
                         </span>
                     </div>
                 </div>
-                <button
-                    onClick={onSeeAll || (() => {})}
-                    className="text-xs font-extrabold text-[#4F46E5] hover:bg-slate-50 border border-slate-200/80 px-4.5 py-2.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 bg-white shadow-sm hover:shadow"
-                >
-                    View All Experts <ChevronRight size={14} strokeWidth={2.5} />
-                </button>
             </div>
 
             {/* Scroll Wrapper */}

@@ -56,7 +56,7 @@ const Navigation = () => {
 
   const { user, token, logout } = useAuth();
   const { data: userProfile } = useUserProfile();
-  const profileImage = user?.profileImage || userProfile?.data?.profileImage;
+  const profileImage = user?.profileImage || userProfile?.profileImage;
 
   // Fetch Notifications
   const fetchNotifications = async () => {

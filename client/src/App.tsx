@@ -79,13 +79,26 @@ function AppRoutes() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50/50">
+        <style>{`
+          @keyframes zoomInOut {
+            0%, 100% {
+              transform: scale(0.85);
+              opacity: 0.7;
+            }
+            50% {
+              transform: scale(1.15);
+              opacity: 1;
+            }
+          }
+          .animate-zoom-logo {
+            animation: zoomInOut 1.8s ease-in-out infinite;
+          }
+        `}</style>
         <div className="relative flex items-center justify-center">
-          {/* Spinning outer ring */}
-          <div className="absolute w-20 h-20 rounded-2xl border-2 border-transparent border-t-blue-600 border-r-blue-600/30 animate-spin"></div>
-          {/* Pulsing brand logo */}
-          <MockeefyLogo className="h-12 w-12 rounded-xl animate-pulse shadow-md relative z-10" />
+          {/* Zooming brand logo only, no spinning ring */}
+          <MockeefyLogo className="h-16 w-16 rounded-2xl shadow-lg relative z-10 animate-zoom-logo" />
         </div>
-        <p className="mt-4 text-[10px] font-black tracking-widest text-blue-600/80 uppercase animate-pulse">
+        <p className="mt-5 text-[10px] font-black tracking-widest text-blue-600/80 uppercase animate-zoom-logo">
           Loading Mockeefy...
         </p>
       </div>

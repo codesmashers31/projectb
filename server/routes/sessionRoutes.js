@@ -22,6 +22,7 @@ router.get('/expert/:expertId', sessionController.getSessionsByExpert);
 router.post('/seed', sessionController.seedSession);
 router.get('/:sessionId/reviews', sessionController.getSessionReviews);
 router.post('/:sessionId/review', sessionController.submitReview);
+router.post('/:sessionId/request-feedback', sessionController.requestFeedback);
 router.post('/', sessionController.createSession);
 
 export default router;

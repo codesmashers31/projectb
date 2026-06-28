@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import axios from "../lib/axios";
 import { Award, ChevronRight, Download, X } from "lucide-react";
 import { getProfileImageUrl } from "../lib/imageUtils";
+import MockeefyLogo from "../components/MockeefyLogo";
 // @ts-ignore
 import html2pdf from "html2pdf.js";
 
@@ -44,91 +45,107 @@ const CertificateTemplate = ({
   certId: string;
 }) => {
   return (
-    <div
-      className="w-[842px] h-[595px] p-10 border-[14px] border-double border-[#1e3a8a] text-slate-800 font-sans flex flex-col justify-between relative bg-white"
-      style={{
-        backgroundImage: "radial-gradient(circle, #ffffff 0%, #f8fafc 100%)",
-        boxShadow: "0 0 40px rgba(0,0,0,0.05)",
-      }}
-    >
-      {/* Thin inner blue frame */}
-      <div className="absolute inset-3 border border-[#3b82f6]/30 pointer-events-none" />
-
-      {/* Header Ornaments */}
-      <div className="text-center mt-2 flex flex-col items-center">
-        <div className="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[#1e3a8a] mb-2 shadow-sm">
-          <Award className="w-5 h-5" />
-        </div>
-        <div className="text-[9px] font-bold text-[#1e3a8a] tracking-[0.3em] uppercase">
-          Mockeefy Certified Assessment
-        </div>
-      </div>
-
-      {/* Certificate Content */}
-      <div className="text-center space-y-3.5">
-        <h1 className="text-4xl font-black text-slate-950 tracking-[0.1em] uppercase">
-          Mockeefy
-        </h1>
-        <p className="text-[11px] text-slate-400 font-medium italic mt-2">
-          This verified credential is proudly conferred upon
-        </p>
-        <h2 className="text-3xl font-extrabold text-slate-900 border-b-2 border-indigo-900/10 pb-2.5 max-w-lg mx-auto tracking-wide">
-          {userName}
-        </h2>
-        <p className="text-xs text-slate-600 max-w-xl mx-auto leading-relaxed pt-2">
-          {isMaster ? (
-            <span>
-              for successfully completing the <strong>Mockeefy Master Interview Readiness Program</strong>, comprising 3+ comprehensive mock interview simulations guided by verified industry experts. The recipient has demonstrated exceptional professional competence, technical proficiency, and career readiness.
-            </span>
-          ) : (
-            <span>
-              for successfully completing a comprehensive <strong>{category} Mock Interview Simulation</strong> under the guidance of verified industry experts. The candidate was evaluated on technical competency, system design, and communication skills.
-            </span>
-          )}
-        </p>
-      </div>
-
-      {/* Footer containing seal, dates, signatures */}
-      <div className="grid grid-cols-3 items-end text-center pb-4 px-6">
-        {/* Left Signature */}
-        <div className="flex flex-col items-center">
-          <div className="w-36 border-b border-slate-300 pb-1 text-slate-800 font-sans text-xs italic font-medium">
-            Mockeefy Expert Panel
+    <div className="w-[842px] h-[595px] p-2 bg-white border-2 border-[#002366] relative font-serif flex flex-col box-border">
+      {/* Inner thin border frame */}
+      <div className="w-full h-full p-8 border border-[#002366] flex flex-col justify-between relative box-border bg-[#fafbfc]">
+        {/* Header Ornaments */}
+        <div className="text-center mt-2 flex flex-col items-center">
+          <div className="w-12 h-12 shadow-md mb-2">
+            <MockeefyLogo className="w-full h-full object-contain" variant="brand" />
           </div>
-          <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest mt-1.5">
-            Assessing Board
-          </span>
+          <div className="text-[9px] font-sans font-bold text-slate-550 tracking-[0.25em] uppercase leading-none">
+            Mockeefy Certified Assessment
+          </div>
+          
+          {/* Gold Diamond Divider */}
+          <div className="flex items-center justify-center gap-2.5 w-60 mx-auto mt-2">
+            <div className="h-[1px] bg-amber-500/50 flex-1" />
+            <div className="w-1.5 h-1.5 bg-amber-500 rotate-45" />
+            <div className="h-[1px] bg-amber-500/50 flex-1" />
+          </div>
         </div>
 
-        {/* Center Seal */}
-        <div className="flex justify-center relative -bottom-1">
-          <div className="w-20 h-20 bg-gradient-to-br from-indigo-900 via-indigo-950 to-[#1e3a8a] rounded-full flex items-center justify-center shadow-md relative border-[3px] border-white z-10">
-            {/* Blue Ribbon Tails */}
-            <div className="absolute -bottom-4 left-3 w-4.5 h-10 bg-[#1e3a8a] rotate-[25deg] origin-top rounded-b-sm shadow-sm" />
-            <div className="absolute -bottom-4 right-3 w-4.5 h-10 bg-[#1e3a8a] -rotate-[25deg] origin-top rounded-b-sm shadow-sm" />
-            <div className="w-14 h-14 rounded-full border border-indigo-200/30 flex flex-col items-center justify-center text-center p-1 bg-white font-sans text-[6px] font-black uppercase text-[#1e3a8a] tracking-wider">
-              <span>Verified</span>
-              <span className="text-[5px] text-slate-500 mt-0.5">Credential</span>
+        {/* Certificate Content */}
+        <div className="text-center space-y-4 my-auto">
+          <h1 className="text-5xl font-serif text-[#002366] tracking-[0.2em] uppercase font-bold leading-none">
+            M O C K E E F Y
+          </h1>
+          <p className="text-[10px] text-slate-550 font-sans tracking-widest uppercase leading-none mt-2">
+            This verified credential is proudly conferred upon
+          </p>
+          <h2 className="text-4xl font-bold font-serif text-[#002366] tracking-wide mt-3">
+            {userName}
+          </h2>
+
+          {/* Gold Diamond Divider (Single Diamond) */}
+          <div className="w-2 h-2 bg-amber-500 rotate-45 mx-auto my-2" />
+
+          <p className="text-[12px] font-sans text-slate-750 max-w-xl mx-auto leading-relaxed">
+            {isMaster ? (
+              <span>
+                for successfully completing the <strong>Mockeefy Master Interview Readiness Program</strong>, comprising 3+ comprehensive mock interview simulations guided by verified industry experts.
+              </span>
+            ) : (
+              <span>
+                for successfully completing a comprehensive <strong>{category || "IT"} Mock Interview Simulation</strong> under the guidance of verified industry experts.
+              </span>
+            )}
+          </p>
+
+          {/* Certificate ID block */}
+          <div className="flex flex-col items-center pt-2">
+            <span className="text-[6px] uppercase tracking-wider text-slate-400 font-bold font-sans">Certificate ID</span>
+            <span className="text-[11px] font-mono font-bold text-[#002366] border-y border-amber-500/40 py-1 px-5 mt-0.5">
+              {certId}
+            </span>
+          </div>
+        </div>
+
+        {/* Footer containing seal, dates, signatures */}
+        <div className="flex items-end justify-between px-4 pb-2">
+          {/* Left Part: ASSESSING BOARD */}
+          <div className="flex flex-col items-center pb-4 text-center">
+            <div className="w-36 flex items-center gap-1">
+              <div className="h-[1px] bg-amber-500/30 flex-1" />
+              <div className="w-1 h-1 bg-amber-500 rotate-45" />
+              <div className="h-[1px] bg-amber-500/30 flex-1" />
             </div>
+            <span className="text-[8px] text-slate-500 font-sans font-bold uppercase tracking-wider mt-1.5">
+              Assessing Board
+            </span>
+          </div>
+
+          {/* Right Part: Gold Seal with trailing blue ribbons */}
+          <div className="relative w-20 h-20 flex items-center justify-center z-10">
+            {/* Dark Blue Ribbon Tails */}
+            <div className="absolute -bottom-6 left-3 w-4.5 h-12 bg-[#002366]" style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 50% 85%, 0% 100%)" }} />
+            <div className="absolute -bottom-6 right-3 w-4.5 h-12 bg-[#002366]" style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 50% 85%, 0% 100%)" }} />
+
+            <svg className="w-20 h-20 drop-shadow-md" viewBox="0 0 100 100">
+              <defs>
+                <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#fef3c7" />
+                  <stop offset="30%" stopColor="#fbbf24" />
+                  <stop offset="70%" stopColor="#d97706" />
+                  <stop offset="100%" stopColor="#92400e" />
+                </linearGradient>
+              </defs>
+              {/* Rosette base */}
+              <circle cx="50" cy="50" r="45" fill="url(#goldGrad)" stroke="#b45309" strokeWidth="1" />
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#b45309" strokeWidth="1" strokeDasharray="3 2" />
+              <circle cx="50" cy="50" r="33" fill="#ffffff" stroke="#b45309" strokeWidth="0.5" />
+              {/* Star details */}
+              <text x="50" y="38" textAnchor="middle" fill="#d97706" fontSize="6">★ ★ ★</text>
+              <text x="50" y="52" textAnchor="middle" fill="#002366" fontSize="7" fontWeight="900" fontFamily="sans-serif" letterSpacing="0.2">VERIFIED</text>
+              <text x="50" y="65" textAnchor="middle" fill="#d97706" fontSize="6">★ ★ ★</text>
+            </svg>
           </div>
         </div>
 
-        {/* Right Signature */}
-        <div className="flex flex-col items-center">
-          <div className="w-36 border-b border-slate-300 pb-1 text-slate-800 font-sans text-xs italic font-medium">
-            Aditya Vardhan
-          </div>
-          <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest mt-1.5">
-            Founder, Mockeefy
-          </span>
+        {/* Issued Date at the very bottom left */}
+        <div className="absolute bottom-2 left-8 text-[9px] text-slate-550 font-sans">
+          Issued: {issueDate}
         </div>
-      </div>
-
-      {/* Meta verification */}
-      <div className="flex justify-between items-center text-[8px] text-slate-400 font-sans border-t border-slate-100 pt-3 px-2">
-        <span>Date Issued: {issueDate}</span>
-        <span>Certificate ID: {certId}</span>
-        <span>Verify at mockeefy.com/verify</span>
       </div>
     </div>
   );
@@ -143,9 +160,46 @@ export default function CertificatesPage() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [downloadingMaster, setDownloadingMaster] = useState(false);
 
-  const completedSessions = useMemo(() => {
-    return sessions.filter((s) => (s.status || "").toLowerCase() === "completed");
+  const allCompletedAndReviewed = useMemo(() => {
+    return sessions.filter(
+      (s) =>
+        (s.status || "").toLowerCase() === "completed" &&
+        s.candidateReview &&
+        s.expertReview
+    );
   }, [sessions]);
+
+  const completedSessions = useMemo(() => {
+    const categoryCounts: Record<string, number> = {};
+    for (const s of allCompletedAndReviewed) {
+      const cat = (s.category || "General").trim().toLowerCase();
+      categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+    }
+    return allCompletedAndReviewed.filter((s) => {
+      const cat = (s.category || "General").trim().toLowerCase();
+      return categoryCounts[cat] >= 3;
+    });
+  }, [allCompletedAndReviewed]);
+
+  const categoryGroups = useMemo(() => {
+    const groups: Record<string, { category: string; sessions: Session[]; latestSession: Session }> = {};
+    for (const s of allCompletedAndReviewed) {
+      const cat = s.category || "IT";
+      const catKey = cat.trim().toLowerCase();
+      if (!groups[catKey]) {
+        groups[catKey] = {
+          category: cat,
+          sessions: [],
+          latestSession: s
+        };
+      }
+      groups[catKey].sessions.push(s);
+      if (new Date(s.startTime || 0).getTime() > new Date(groups[catKey].latestSession.startTime || 0).getTime()) {
+        groups[catKey].latestSession = s;
+      }
+    }
+    return Object.values(groups);
+  }, [allCompletedAndReviewed]);
 
   const masterCertId = useMemo(() => {
     const userId = (user as any)?.id || (user as any)?._id || "USR";
@@ -211,9 +265,22 @@ export default function CertificatesPage() {
 
   // Pagination (same pattern as My Bookings)
   const sortedCompleted = useMemo(() => {
-    return completedSessions
+    const sorted = completedSessions
       .slice()
       .sort((a, b) => new Date(b.startTime || 0).getTime() - new Date(a.startTime || 0).getTime());
+
+    const seenCategories = new Set<string>();
+    const uniqueByCategory: Session[] = [];
+
+    for (const session of sorted) {
+      const categoryKey = (session.category || "General").trim().toLowerCase();
+      if (!seenCategories.has(categoryKey)) {
+        seenCategories.add(categoryKey);
+        uniqueByCategory.push(session);
+      }
+    }
+
+    return uniqueByCategory;
   }, [completedSessions]);
 
   const PAGE_SIZE = 10;
@@ -246,7 +313,7 @@ export default function CertificatesPage() {
           expert: s.expertDetails?.name || s.expertId?.name || "Expert",
           profileImage: s.expertDetails?.profileImage || s.expertId?.profileImage || null,
           startTime: s.startTime,
-          category: s.categoryName || s.category || s.expertDetails?.personalInformation?.category || "IT",
+          category: s.category || s.expertDetails?.category || "IT",
           status: (s.status || "").charAt(0).toUpperCase() + (s.status || "").slice(1),
           expertReview: s.expertReview || null,
           candidateReview: s.candidateReview || null,
@@ -265,63 +332,6 @@ export default function CertificatesPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-10 max-w-5xl mx-auto">
-      {/* Milestone progress card */}
-      {!loading && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] p-6 relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-            <div className="flex items-center gap-4.5">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-indigo-650 shrink-0 shadow-sm">
-                <Award className="w-6 h-6" />
-              </div>
-              <div className="text-left">
-                <h2 className="text-base font-bold text-slate-900">Master Certificate of Interview Excellence</h2>
-                <p className="text-xs text-slate-550 mt-1 max-w-xl">
-                  Unlock this certification of readiness by completing at least 3 mock interview simulations with verified industry experts.
-                </p>
-                
-                {/* Progress Bar */}
-                <div className="mt-3.5 flex items-center gap-3">
-                  <div className="w-48 bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/30">
-                    <div 
-                      className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
-                      style={{ width: `${Math.min(100, (completedSessions.length / 3) * 100)}%` }} 
-                    />
-                  </div>
-                  <span className="text-xs text-slate-500 font-bold">{completedSessions.length}/3 Completed</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              {completedSessions.length >= 3 ? (
-                <div className="flex items-center gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsMasterSelected(true)}
-                    className="px-4 py-2 bg-indigo-650 hover:bg-indigo-750 text-white font-bold rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-2 text-xs"
-                  >
-                    View Certification
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDownloadMasterPDF}
-                    disabled={downloadingMaster}
-                    className="p-2.5 bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold rounded-lg shadow-sm flex items-center gap-2 text-xs"
-                    title="Download Master PDF"
-                  >
-                    <Download size={14} className={downloadingMaster ? "animate-bounce" : ""} />
-                  </button>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-xs font-semibold">
-                  Locked (Complete {3 - completedSessions.length} more)
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Certificates List Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -338,11 +348,6 @@ export default function CertificatesPage() {
               <span className="w-1 h-1 rounded-full bg-blue-500"></span>
               <span className="text-[8px] font-black tracking-tight uppercase">Verified</span>
             </div>
-
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-100">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Total</span>
-              <span className="text-[10px] font-black text-slate-700 tabular-nums">{sortedCompleted.length}</span>
-            </div>
           </div>
         </div>
 
@@ -352,86 +357,83 @@ export default function CertificatesPage() {
             <div className="h-10 bg-slate-50 rounded-xl animate-pulse mt-3" />
             <div className="h-10 bg-slate-50 rounded-xl animate-pulse mt-3" />
           </div>
-        ) : completedSessions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Certificate details
-                  </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Date issued
-                  </th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {pagedCertificates.map((session) => (
-                    <tr key={session.id} className="hover:bg-slate-50/30 transition-colors">
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-elite-blue shrink-0 overflow-hidden border border-blue-100">
-                            {session.profileImage ? (
-                              <img
-                                src={getProfileImageUrl(session.profileImage)}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <Award size={20} />
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="font-bold text-slate-900 text-sm">Certificate of Completion</h3>
-                            <p className="text-xs text-slate-500 mt-0.5 truncate">
-                              {session.category} Simulation with {session.expert}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm font-bold text-slate-700">
-                          {session.startTime ? new Date(session.startTime).toLocaleDateString() : "—"}
-                        </p>
-                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mt-0.5">Verified</p>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedSession(session)}
-                            className="px-4 py-2 border border-slate-200 hover:border-elite-blue hover:text-elite-blue text-slate-600 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
-                          >
-                            View <ChevronRight size={12} strokeWidth={3} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadPDF(session)}
-                            disabled={downloading === session.id}
-                            className="px-4 py-2 bg-[#EEF2FF] hover:bg-indigo-50 text-[#4F46E5] hover:text-indigo-700 border border-indigo-100 rounded-lg text-xs font-bold transition-all flex items-center gap-2 disabled:opacity-50"
-                          >
-                            <Download size={14} className={downloading === session.id ? "animate-bounce" : ""} />
-                            {downloading === session.id ? "Saving..." : "PDF"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
         ) : (
-          <div className="p-16 text-center flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
-              <Award className="w-8 h-8 text-slate-300" />
-            </div>
-            <h3 className="text-slate-900 font-bold mb-1">No Certificates Yet</h3>
-            <p className="text-slate-500 text-sm max-w-xs mx-auto">
-              Complete sessions to unlock certificates. Your verified certificates will appear here.
-            </p>
+          <div className="p-6">
+            {/* Category Certificate Progress Grid */}
+            {categoryGroups.length === 0 ? (
+              <div className="text-center p-8 flex flex-col items-center">
+                <Award className="w-8 h-8 text-slate-300 mb-3 animate-pulse" />
+                <h3 className="font-bold text-slate-900 text-sm">No Category Progress Yet</h3>
+                <p className="text-xs text-slate-550 max-w-sm mt-1">
+                  Complete at least 3 mock interviews in the same category (e.g. Java, HR, AI) to unlock its Verified Certificate.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {categoryGroups.map((group) => {
+                  const count = group.sessions.length;
+                  const isUnlocked = count >= 3;
+                  return (
+                    <div key={group.category} className="bg-slate-50/50 rounded-2xl border border-slate-200/80 p-5 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${isUnlocked ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200/50'}`}>
+                            {isUnlocked ? 'Unlocked' : 'In Progress'}
+                          </span>
+                          <Award className={`w-5 h-5 ${isUnlocked ? 'text-indigo-600' : 'text-slate-350'}`} />
+                        </div>
+                        
+                        <div>
+                          <h3 className="font-bold text-slate-900 text-sm">{group.category} Interview Excellence</h3>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Category Certification</p>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="space-y-1.5 pt-1">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-slate-500 font-bold">{count}/3 Completed</span>
+                            <span className="text-slate-400">{Math.round(Math.min(100, (count / 3) * 100))}%</span>
+                          </div>
+                          <div className="w-full bg-slate-200/60 rounded-full h-1.5 overflow-hidden border border-slate-200/30">
+                            <div 
+                              className="bg-indigo-600 h-full rounded-full transition-all duration-500" 
+                              style={{ width: `${Math.min(100, (count / 3) * 100)}%` }} 
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-slate-200/60 flex items-center justify-between gap-2">
+                        {isUnlocked ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSession(group.latestSession)}
+                              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg text-[10px] transition-all flex items-center gap-1"
+                            >
+                              Preview
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadPDF(group.latestSession)}
+                              disabled={downloading === group.latestSession.id}
+                              className="px-3 py-1.5 bg-indigo-650 hover:bg-indigo-750 text-white font-bold rounded-lg text-[10px] transition-all flex items-center gap-1 disabled:opacity-50"
+                            >
+                              <Download size={12} className={downloading === group.latestSession.id ? "animate-bounce" : ""} />
+                              PDF
+                            </button>
+                          </>
+                        ) : (
+                          <p className="text-[10px] text-slate-400 italic">
+                            Complete {3 - count} more sessions to unlock.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -514,79 +516,98 @@ export default function CertificatesPage() {
             </div>
             
             <div className="p-6 bg-slate-50/50 flex flex-col items-center gap-6">
-              {/* Responsive preview of the certificate */}
               <div className="w-full overflow-hidden border border-slate-200 rounded-2xl bg-white p-2.5 flex justify-center shadow-lg">
-                {/* A responsive, CSS-scaled preview using aspect-ratio and relative dimensions */}
-                <div className="w-full aspect-[1.414] bg-white border-[6px] md:border-[10px] border-double border-[#1e3a8a] p-4 md:p-6 text-slate-800 font-sans flex flex-col justify-between relative shadow-sm" style={{
-                  backgroundImage: "radial-gradient(circle, #ffffff 0%, #f1f5f9 100%)"
-                }}>
-                  {/* Inner blue frame */}
-                  <div className="absolute inset-1 md:inset-2 border border-[#3b82f6]/30 pointer-events-none" />
-
-                  <div className="text-center mt-1 flex flex-col items-center">
-                    <Award className="w-3.5 h-3.5 md:w-5 md:h-5 text-[#1e3a8a] mb-0.5 md:mb-1" />
-                    <div className="text-[5px] md:text-[6px] font-sans font-black text-[#1e3a8a] tracking-[0.2em] uppercase leading-none">
-                      Mockeefy Certified Assessment
-                    </div>
-                  </div>
-
-                  <div className="text-center my-auto py-2">
-                    <h4 className="text-xl md:text-3xl font-black text-slate-955 font-sans tracking-wider uppercase leading-none">
-                      Mockeefy
-                    </h4>
-                    <p className="text-[7px] md:text-[9px] font-sans text-slate-400 italic mt-1 md:mt-2">
-                      This verified credential is proudly conferred upon
-                    </p>
-                    <h5 className="text-base md:text-2xl font-extrabold text-slate-900 border-b border-indigo-900/10 pb-1 max-w-[80%] mx-auto font-sans tracking-wide mt-1.5 md:mt-2.5">
-                      {user?.name || "Candidate"}
-                    </h5>
-                    <p className="text-[6px] md:text-[10px] font-sans text-slate-600 max-w-[90%] mx-auto leading-relaxed mt-2.5 md:mt-4">
-                      {isMasterSelected ? (
-                        <span>
-                          for successfully completing the <strong>Mockeefy Master Interview Readiness Program</strong>, comprising 3+ comprehensive mock interview simulations guided by verified industry experts.
-                        </span>
-                      ) : (
-                        <span>
-                          for successfully completing a comprehensive <strong>{selectedSession?.category} Mock Interview Simulation</strong> under the guidance of verified industry experts.
-                        </span>
-                      )}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-3 items-end text-center pb-2 px-2">
-                    <div className="flex flex-col items-center">
-                      <div className="w-16 md:w-28 border-b border-slate-300 pb-0.5 text-slate-800 font-sans text-[5px] md:text-[8px] italic leading-none">
-                        Mockeefy Expert Panel
+                <div className="w-full aspect-[1.414] bg-white border-[2px] border-[#002366] p-1 font-serif flex flex-col justify-between relative shadow-md">
+                  <div className="w-full h-full p-2.5 md:p-4 border border-[#002366]/40 flex flex-col justify-between relative bg-[#fafbfc]">
+                    {/* Header Ornaments */}
+                    <div className="text-center mt-1 flex flex-col items-center">
+                      <div className="w-6 h-6 md:w-10 md:h-10 rounded-lg overflow-hidden shadow-sm mb-1">
+                        <MockeefyLogo className="w-full h-full object-contain" variant="brand" />
                       </div>
-                      <span className="text-[4px] md:text-[6px] text-slate-400 uppercase font-sans font-black mt-1 leading-none">
-                        Assessing Board
-                      </span>
+                      <div className="text-[4px] md:text-[8px] font-sans font-bold text-slate-550 tracking-[0.25em] uppercase leading-none">
+                        Mockeefy Certified Assessment
+                      </div>
+                      
+                      {/* Gold Diamond Divider */}
+                      <div className="flex items-center justify-center gap-1.5 w-32 md:w-60 mx-auto mt-1 md:mt-2">
+                        <div className="h-[1px] bg-amber-500/50 flex-1" />
+                        <div className="w-1.5 h-1.5 bg-amber-500 rotate-45" />
+                        <div className="h-[1px] bg-amber-500/50 flex-1" />
+                      </div>
                     </div>
 
-                    <div className="flex justify-center relative">
-                      <div className="w-10 h-10 md:w-16 md:h-16 bg-gradient-to-br from-indigo-900 via-indigo-950 to-[#1e3a8a] rounded-full flex items-center justify-center shadow border-2 border-white relative z-10">
-                        {/* Blue Ribbon Tails */}
-                        <div className="absolute -bottom-2.5 left-1.5 w-2 h-5 bg-[#1e3a8a] rotate-[25deg] origin-top rounded-b-xs shadow-sm md:-bottom-4 md:left-2 md:w-3.5 md:h-8" />
-                        <div className="absolute -bottom-2.5 right-1.5 w-2 h-5 bg-[#1e3a8a] -rotate-[25deg] origin-top rounded-b-xs shadow-sm md:-bottom-4 md:right-2 md:w-3.5 md:h-8" />
-                        <div className="w-7 h-7 md:w-11 md:h-11 rounded-full flex flex-col items-center justify-center text-center p-0.5 bg-white font-sans text-[3px] md:text-[5px] font-black uppercase text-[#1e3a8a] tracking-wider">
-                          Verified
+                    {/* Certificate Content */}
+                    <div className="text-center my-auto py-1 md:py-2">
+                      <h4 className="text-lg md:text-3xl font-serif text-[#002366] tracking-[0.2em] uppercase font-bold leading-none">
+                        M O C K E E F Y
+                      </h4>
+                      <p className="text-[5px] md:text-[9px] font-sans text-slate-550 mt-1 md:mt-2 tracking-wide uppercase leading-none">
+                        This verified credential is proudly conferred upon
+                      </p>
+                      <h5 className="text-xs md:text-2xl font-bold font-serif text-[#002366] mt-1.5 md:mt-3">
+                        {user?.name || "Candidate"}
+                      </h5>
+
+                      {/* Gold Diamond Divider */}
+                      <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-amber-500 rotate-45 mx-auto my-1 md:my-2" />
+
+                      <p className="text-[5px] md:text-[11px] font-sans text-slate-700 max-w-[90%] mx-auto leading-relaxed">
+                        {isMasterSelected ? (
+                          <span>
+                            for successfully completing the <strong>Mockeefy Master Interview Readiness Program</strong>, comprising 3+ comprehensive mock interview simulations guided by verified industry experts.
+                          </span>
+                        ) : (
+                          <span>
+                            for successfully completing a comprehensive <strong>{selectedSession?.category || "IT"} Mock Interview Simulation</strong> under the guidance of verified industry experts.
+                          </span>
+                        )}
+                      </p>
+
+                      {/* Certificate ID block */}
+                      <div className="flex flex-col items-center pt-1 md:pt-2">
+                        <span className="text-[3px] md:text-[6px] uppercase tracking-wider text-slate-400 font-bold font-sans">Certificate ID</span>
+                        <span className="text-[5px] md:text-[10px] font-mono font-bold text-[#002366] border-y border-amber-500/40 py-0.5 px-2 md:px-4 mt-0.5">
+                          {isMasterSelected ? masterCertId : `MCFY-${selectedSession?.id.slice(-8).toUpperCase()}`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Footer containing seal, dates, signatures */}
+                    <div className="flex items-end justify-between px-2 md:px-6 pb-1">
+                      {/* Left Part: ASSESSING BOARD */}
+                      <div className="flex flex-col items-center pb-2">
+                        <div className="w-16 md:w-32 flex items-center gap-0.5 md:gap-1">
+                          <div className="h-[1px] bg-amber-500/30 flex-1" />
+                          <div className="w-0.5 h-0.5 md:w-1 md:h-1 bg-amber-500 rotate-45" />
+                          <div className="h-[1px] bg-amber-500/30 flex-1" />
                         </div>
+                        <span className="text-[4px] md:text-[7px] text-slate-550 font-sans font-bold uppercase tracking-wider mt-1 leading-none">
+                          Assessing Board
+                        </span>
+                      </div>
+
+                      {/* Right Part: Gold Seal */}
+                      <div className="relative w-8 h-8 md:w-16 md:h-16 flex items-center justify-center z-10">
+                        {/* Dark Blue Ribbon Tails */}
+                        <div className="absolute -bottom-2.5 md:-bottom-5 left-1 w-1.5 md:w-3.5 h-5 md:h-10 bg-[#002366]" style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 50% 85%, 0% 100%)" }} />
+                        <div className="absolute -bottom-2.5 md:-bottom-5 right-1 w-1.5 md:w-3.5 h-5 md:h-10 bg-[#002366]" style={{ clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 50% 85%, 0% 100%)" }} />
+                        
+                        <svg className="w-8 h-8 md:w-16 md:h-16 drop-shadow-sm" viewBox="0 0 100 100">
+                          {/* Rosette base */}
+                          <circle cx="50" cy="50" r="45" fill="url(#goldGrad)" stroke="#b45309" strokeWidth="1" />
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="#b45309" strokeWidth="1" strokeDasharray="3 2" />
+                          <circle cx="50" cy="50" r="33" fill="#ffffff" stroke="#b45309" strokeWidth="0.5" />
+                          <text x="50" y="38" textAnchor="middle" fill="#d97706" fontSize="6">★ ★ ★</text>
+                          <text x="50" y="52" textAnchor="middle" fill="#002366" fontSize="7" fontWeight="900" fontFamily="sans-serif" letterSpacing="0.2">VERIFIED</text>
+                          <text x="50" y="65" textAnchor="middle" fill="#d97706" fontSize="6">★ ★ ★</text>
+                        </svg>
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-center">
-                      <div className="w-16 md:w-28 border-b border-slate-300 pb-0.5 text-slate-800 font-sans text-[5px] md:text-[8px] italic leading-none">
-                        Aditya Vardhan
-                      </div>
-                      <span className="text-[4px] md:text-[6px] text-slate-400 uppercase font-sans font-black mt-1 leading-none">
-                        Founder, Mockeefy
-                      </span>
+                    {/* Issued Date at the bottom left */}
+                    <div className="absolute bottom-1 md:bottom-2 left-4 md:left-8 text-[4px] md:text-[9px] text-slate-550 font-sans">
+                      Issued: {isMasterSelected ? new Date().toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }) : (selectedSession?.startTime ? new Date(selectedSession.startTime).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }) : "—")}
                     </div>
-                  </div>
-
-                  <div className="flex justify-between items-center text-[4px] md:text-[6px] text-slate-400 font-sans border-t border-slate-100 pt-1.5 px-1 leading-none">
-                    <span>Issued: {isMasterSelected ? new Date().toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }) : (selectedSession?.startTime ? new Date(selectedSession.startTime).toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' }) : "—")}</span>
-                    <span>ID: {isMasterSelected ? masterCertId : `MCFY-${selectedSession?.id.slice(-8).toUpperCase()}`}</span>
                   </div>
                 </div>
               </div>

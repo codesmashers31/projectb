@@ -59,9 +59,13 @@ export default function Sessions() {
         overallRating: 5,
         technicalRating: 5,
         communicationRating: 5,
+        problemSolvingRating: 5,
+        designRating: 5,
+        behavioralRating: 5,
         feedback: "",
         strengths: "",
-        weaknesses: ""
+        weaknesses: "",
+        suggestions: ""
     });
 
     const currentUserId = user?.id || "";
@@ -184,7 +188,11 @@ export default function Sessions() {
                 overallRating: reviewForm.overallRating,
                 technicalRating: reviewForm.technicalRating,
                 communicationRating: reviewForm.communicationRating,
+                problemSolvingRating: reviewForm.problemSolvingRating,
+                designRating: reviewForm.designRating,
+                behavioralRating: reviewForm.behavioralRating,
                 feedback: reviewForm.feedback,
+                suggestions: reviewForm.suggestions,
                 strengths: reviewForm.strengths.split(',').map(s => s.trim()).filter(Boolean),
                 weaknesses: reviewForm.weaknesses.split(',').map(s => s.trim()).filter(Boolean),
                 expertId: currentUserId,
@@ -205,7 +213,11 @@ export default function Sessions() {
                     overallRating: 5,
                     technicalRating: 5,
                     communicationRating: 5,
+                    problemSolvingRating: 5,
+                    designRating: 5,
+                    behavioralRating: 5,
                     feedback: "",
+                    suggestions: "",
                     strengths: "",
                     weaknesses: ""
                 });
@@ -740,6 +752,33 @@ export default function Sessions() {
                                                 className="w-full border rounded p-2"
                                             />
                                         </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Problem Solving</label>
+                                            <input
+                                                type="number" min="1" max="5"
+                                                value={reviewForm.problemSolvingRating}
+                                                onChange={e => setReviewForm(prev => ({ ...prev, problemSolvingRating: parseInt(e.target.value) }))}
+                                                className="w-full border rounded p-2"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">System Design</label>
+                                            <input
+                                                type="number" min="1" max="5"
+                                                value={reviewForm.designRating}
+                                                onChange={e => setReviewForm(prev => ({ ...prev, designRating: parseInt(e.target.value) }))}
+                                                className="w-full border rounded p-2"
+                                            />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Behavioral & Culture Fit</label>
+                                            <input
+                                                type="number" min="1" max="5"
+                                                value={reviewForm.behavioralRating}
+                                                onChange={e => setReviewForm(prev => ({ ...prev, behavioralRating: parseInt(e.target.value) }))}
+                                                className="w-full border rounded p-2"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -770,6 +809,15 @@ export default function Sessions() {
                                         placeholder="Write a detailed summary of the interview..."
                                         value={reviewForm.feedback}
                                         onChange={e => setReviewForm(prev => ({ ...prev, feedback: e.target.value }))}
+                                    ></textarea>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Key Recommendations & Suggestions</label>
+                                    <textarea
+                                        className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[100px]"
+                                        placeholder="Add actionable tips for the candidate's next steps..."
+                                        value={reviewForm.suggestions}
+                                        onChange={e => setReviewForm(prev => ({ ...prev, suggestions: e.target.value }))}
                                     ></textarea>
                                 </div>
 

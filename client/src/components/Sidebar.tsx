@@ -47,14 +47,14 @@ const Sidebar = () => {
     fetchSessions();
   }, [user?.id]);
 
-  const displayProfile = userProfile?.data || {
+  const displayProfile = userProfile || {
     name: user?.name || "User",
     profileImage: null,
-    profileCompletion: 65,
+    profileCompletion: 0,
   };
 
   const roleLine = (() => {
-    const data: any = userProfile?.data;
+    const data: any = userProfile;
     const expList = Array.isArray(data?.experience) ? data.experience : [];
     const current = expList.find((e: any) => e?.current && e?.position) || expList.find((e: any) => e?.position);
     const position = (current?.position || "").toString().trim();
@@ -66,20 +66,41 @@ const Sidebar = () => {
   const NavItem = ({ icon: Icon, label, path, active }: any) => (
     <button
       onClick={() => navigate(path)}
-      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[11px] font-black transition-all duration-300 group tracking-tight ${active
-        ? "bg-elite-blue text-white shadow-lg shadow-blue-500/20"
-        : "text-slate-500 hover:bg-blue-50/50 hover:text-elite-blue"
-        }`}
+      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 group tracking-tight relative overflow-hidden ${
+        active
+          ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-md shadow-indigo-650/15"
+          : "text-slate-600 hover:bg-slate-50 hover:text-indigo-600"
+      }`}
     >
-      <div className="flex items-center gap-3">
-        <Icon size={14} className={`transition-colors ${active ? "text-white" : "text-slate-400 group-hover:text-elite-blue"}`} />
-        {label}
+      {active && (
+        <span className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-md" />
+      )}
+      <div className="flex items-center gap-3 relative z-10">
+        <Icon 
+          size={15} 
+          className={`transition-all duration-300 ${
+            active 
+              ? "text-white scale-110" 
+              : "text-slate-400 group-hover:text-indigo-605 group-hover:scale-110"
+          }`} 
+        />
+        <span className={`transition-transform duration-300 ${!active && "group-hover:translate-x-0.5"}`}>
+          {label}
+        </span>
       </div>
-      {active && <ChevronRight size={10} strokeWidth={4} />}
+      {active ? (
+        <ChevronRight size={11} strokeWidth={3} className="text-white animate-pulse" />
+      ) : (
+        <ChevronRight 
+          size={11} 
+          strokeWidth={3} 
+          className="text-slate-300 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" 
+        />
+      )}
     </button>
   );
 
-  const radius = 18;
+  const radius = 20;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - ((displayProfile.profileCompletion || 0) / 100) * circumference;
 
@@ -91,24 +112,32 @@ const Sidebar = () => {
       {/* CARD 1: IDENTITY */}
       <div 
         onClick={() => navigate("/profile")}
-        className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm cursor-pointer hover:shadow-md hover:border-blue-200/80 hover:bg-slate-50/10 transition-all duration-300 group/profile-card"
+        className="bg-gradient-to-br from-white to-slate-50/50 rounded-2xl border border-slate-200/80 p-4 shadow-[0_2px_8px_rgba(0,0,0,0.03)] cursor-pointer hover:shadow-md hover:border-indigo-200/80 hover:bg-slate-50/10 transition-all duration-300 group/profile-card relative overflow-hidden"
       >
-        <div className="flex items-center gap-3">
+        <div className="absolute inset-0 bg-gradient-to-tr from-indigo-50/0 to-indigo-50/10 opacity-0 group-hover/profile-card:opacity-100 transition-opacity duration-500 pointer-events-none" />
+        
+        <div className="flex items-center gap-3.5 relative z-10">
           <div className="relative shrink-0">
-            <div className="relative w-11 h-11 flex items-center justify-center">
-              <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90" viewBox="0 0 44 44">
-                <circle cx="22" cy="22" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="2.5" />
+            <div className="relative w-12 h-12 flex items-center justify-center">
+              <svg className="absolute top-0 left-0 w-full h-full transform -rotate-90" viewBox="0 0 48 48">
+                <circle cx="24" cy="24" r={radius} fill="none" stroke="#f1f5f9" strokeWidth="2.5" />
                 <circle
-                  cx="22" cy="22" r={radius}
+                  cx="24" cy="24" r={radius}
                   fill="none"
-                  stroke="#004fcb"
+                  stroke="url(#completion-gradient)"
                   strokeWidth="2.5"
                   strokeDasharray={circumference}
                   strokeDashoffset={offset}
                   strokeLinecap="round"
                 />
+                <defs>
+                  <linearGradient id="completion-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4f46e5" />
+                    <stop offset="100%" stopColor="#2563eb" />
+                  </linearGradient>
+                </defs>
               </svg>
-              <div className="w-8 h-8 rounded-full border-2 border-white absolute bg-slate-50 overflow-hidden">
+              <div className="w-8.5 h-8.5 rounded-full border-2 border-white absolute bg-slate-50 overflow-hidden shadow-sm">
                 <Avatar
                   name={displayProfile.name}
                   src={(user as any)?.profileImage ?? (displayProfile as any)?.profileImage}
@@ -119,14 +148,29 @@ const Sidebar = () => {
           </div>
           <div className="min-w-0 flex-1 flex items-center justify-between gap-1.5">
             <div className="min-w-0 flex-1">
-              <h3 className="font-elite truncate tracking-tight text-gray-900 group-hover/profile-card:text-[#004fcb] transition-colors">
+              <h3 className="font-bold text-[13px] text-slate-800 truncate tracking-tight group-hover/profile-card:text-indigo-650 transition-colors">
                 {displayProfile.name}
               </h3>
-              <p className="text-[8px] font-black text-blue-600 tracking-widest mt-1 uppercase truncate">
-                {roleLine}
-              </p>
+              
+              <div className="mt-1.5 flex flex-wrap gap-1 items-center">
+                <span className="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-[8px] font-bold text-indigo-600 uppercase tracking-wider inline-block leading-none">
+                  {roleLine}
+                </span>
+                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider inline-block leading-none ${
+                  displayProfile.profileCompletion >= 90 
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                }`}>
+                  {displayProfile.profileCompletion}%
+                </span>
+                {displayProfile.isPremium && (
+                  <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-bold uppercase tracking-wider inline-block leading-none shadow-sm shadow-orange-500/10">
+                    PRO
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="p-1.5 rounded-lg bg-slate-50 text-slate-400 group-hover/profile-card:bg-blue-50 group-hover/profile-card:text-[#004fcb] transition-all shrink-0">
+            <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 text-slate-400 group-hover/profile-card:bg-indigo-50 group-hover/profile-card:text-indigo-600 group-hover/profile-card:border-indigo-100 transition-all duration-300 flex items-center justify-center shrink-0 shadow-sm group-hover/profile-card:rotate-12">
               <Pencil size={11} className="stroke-[2.5]" />
             </div>
           </div>

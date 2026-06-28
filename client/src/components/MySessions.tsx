@@ -11,7 +11,8 @@ import {
   Star,
   X,
   MessageSquare,
-  Clock
+  Clock,
+  Send
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
@@ -48,6 +49,7 @@ type Session = {
   candidateId?: string;
   expertReview?: ReviewInfo | null;
   candidateReview?: ReviewInfo | null;
+  feedbackRequested?: boolean;
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -333,6 +335,32 @@ const MySessions = ({ initialViewOverride }: { initialViewOverride?: 'overview' 
     navigate(`/live-meeting/${session.sessionId}`, { state: { session } });
   };
 
+  const handleRequestFeedback = async (sessionId: string) => {
+    try {
+      const res = await axios.post(`/api/sessions/${sessionId}/request-feedback`);
+      if (res.data.success) {
+        toast.success("Feedback request sent successfully to the expert dashboard!");
+        // Update local session status/flag
+        setSessions(prev => prev.map(s => s.sessionId === sessionId ? { ...s, feedbackRequested: true } : s));
+      } else {
+        toast.error(res.data.message || "Failed to request feedback.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to request feedback.");
+    }
+  };
+
+  const getCompletedCountForCategory = (categoryName: string) => {
+    return sessions.filter(
+      (s) =>
+        (s.status || "").toLowerCase() === "completed" &&
+        (s.category || "IT") === categoryName &&
+        s.candidateReview &&
+        s.expertReview
+    ).length;
+  };
+
   const handleSubmitReview = async () => {
     if (!reviewModalSession || !user?.id) return;
     setSubmittingReview(true);
@@ -448,23 +476,53 @@ const MySessions = ({ initialViewOverride }: { initialViewOverride?: 'overview' 
                             <td className="px-6 py-5 text-right align-middle">
                               <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                                 {displayStatus === 'Completed' ? (
-                                  session.candidateReview ? (
-                                    <button
-                                      onClick={() => setCertificateModalSession(session)}
-                                      className="px-4 py-2 border border-slate-200 hover:border-elite-blue hover:text-elite-blue text-slate-600 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
-                                    >
-                                      <Award size={14} />
-                                      <span>View Certificate</span>
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => setReviewModalSession(session)}
-                                      className="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
-                                    >
-                                      <MessageSquare size={14} />
-                                      <span>Give Review</span>
-                                    </button>
-                                  )
+                                  <>
+                                    {session.candidateReview ? (
+                                      session.expertReview && getCompletedCountForCategory(session.category || "IT") >= 3 ? (
+                                        <button
+                                          onClick={() => setCertificateModalSession(session)}
+                                          className="px-4 py-2 border border-slate-200 hover:border-elite-blue hover:text-elite-blue text-slate-600 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
+                                        >
+                                          <Award size={14} />
+                                          <span>View Certificate</span>
+                                        </button>
+                                      ) : null
+                                    ) : (
+                                      <button
+                                        onClick={() => setReviewModalSession(session)}
+                                        className="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
+                                      >
+                                        <MessageSquare size={14} />
+                                        <span>Give Review</span>
+                                      </button>
+                                    )}
+
+                                    {session.expertReview ? (
+                                      <button
+                                        onClick={() => setCertificateModalSession(session)}
+                                        className="px-4 py-2 border border-indigo-200 hover:border-indigo-600 hover:text-indigo-600 text-indigo-700 rounded-lg text-xs font-bold transition-all flex items-center gap-2 bg-indigo-50/30"
+                                      >
+                                        <MessageSquare size={14} />
+                                        <span>View Feedback</span>
+                                      </button>
+                                    ) : session.feedbackRequested ? (
+                                      <button
+                                        disabled
+                                        className="px-4 py-2 bg-slate-50 border border-slate-200 text-slate-400 rounded-lg text-xs font-bold flex items-center gap-2 cursor-not-allowed"
+                                      >
+                                        <Clock size={14} />
+                                        <span>Feedback Requested</span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleRequestFeedback(session.sessionId)}
+                                        className="px-4 py-2 bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-bold transition-all flex items-center gap-2"
+                                      >
+                                        <Send size={14} />
+                                        <span>Request Feedback</span>
+                                      </button>
+                                    )}
+                                  </>
                                 ) : joinable ? (
                                   <button
                                     onClick={() => handleJoin(session)}
@@ -574,15 +632,33 @@ const MySessions = ({ initialViewOverride }: { initialViewOverride?: 'overview' 
                                 <StatusBadge status={displayStatus} />
                               )}
                               {displayStatus === 'Completed' ? (
-                                session.candidateReview ? (
-                                  <button onClick={() => setCertificateModalSession(session)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-1.5">
-                                    <Award size={12} /> View Certificate
-                                  </button>
-                                ) : (
-                                  <button onClick={() => setReviewModalSession(session)} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-xs font-bold flex items-center gap-1.5">
-                                    <MessageSquare size={12} /> Give Review
-                                  </button>
-                                )
+                                <div className="flex flex-wrap gap-2">
+                                  {session.candidateReview ? (
+                                    session.expertReview && getCompletedCountForCategory(session.category || "IT") >= 3 ? (
+                                      <button onClick={() => setCertificateModalSession(session)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-600 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                                        <Award size={12} /> View Certificate
+                                      </button>
+                                    ) : null
+                                  ) : (
+                                    <button onClick={() => setReviewModalSession(session)} className="px-3 py-1.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                                      <MessageSquare size={12} /> Give Review
+                                    </button>
+                                  )}
+
+                                  {session.expertReview ? (
+                                    <button onClick={() => setCertificateModalSession(session)} className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                                      <MessageSquare size={12} /> View Feedback
+                                    </button>
+                                  ) : session.feedbackRequested ? (
+                                    <button disabled className="px-3 py-1.5 bg-slate-50 border border-slate-200 text-slate-400 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-not-allowed">
+                                      <Clock size={12} /> Feedback Requested
+                                    </button>
+                                  ) : (
+                                    <button onClick={() => handleRequestFeedback(session.sessionId)} className="px-3 py-1.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg text-xs font-bold flex items-center gap-1.5">
+                                      <Send size={12} /> Request Feedback
+                                    </button>
+                                  )}
+                                </div>
                               ) : joinable ? (
                                 <button
                                   onClick={() => handleJoin(session)}
@@ -874,16 +950,46 @@ const MySessions = ({ initialViewOverride }: { initialViewOverride?: 'overview' 
                         <span className="px-2 py-1 rounded-lg bg-amber-50 text-amber-700 text-sm font-bold">Overall: {certificateModalSession.expertReview.overallRating}/5</span>
                         {certificateModalSession.expertReview.technicalRating != null && <span className="px-2 py-1 rounded-lg bg-blue-50 text-blue-700 text-sm font-medium">Technical: {certificateModalSession.expertReview.technicalRating}/5</span>}
                         {certificateModalSession.expertReview.communicationRating != null && <span className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-medium">Communication: {certificateModalSession.expertReview.communicationRating}/5</span>}
+                        {certificateModalSession.expertReview.problemSolvingRating != null && certificateModalSession.expertReview.problemSolvingRating > 0 && <span className="px-2 py-1 rounded-lg bg-violet-50 text-violet-700 text-sm font-medium">Problem Solving: {certificateModalSession.expertReview.problemSolvingRating}/5</span>}
+                        {certificateModalSession.expertReview.designRating != null && certificateModalSession.expertReview.designRating > 0 && <span className="px-2 py-1 rounded-lg bg-cyan-50 text-cyan-700 text-sm font-medium">System Design: {certificateModalSession.expertReview.designRating}/5</span>}
+                        {certificateModalSession.expertReview.behavioralRating != null && certificateModalSession.expertReview.behavioralRating > 0 && <span className="px-2 py-1 rounded-lg bg-pink-50 text-pink-700 text-sm font-medium">Behavioral: {certificateModalSession.expertReview.behavioralRating}/5</span>}
                       </div>
-                      {certificateModalSession.expertReview.feedback && <p className="text-sm text-slate-700 mt-2">{certificateModalSession.expertReview.feedback}</p>}
+                      {certificateModalSession.expertReview.feedback && (
+                        <div className="mt-2">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase">Detailed Feedback</p>
+                          <p className="text-sm text-slate-700 mt-0.5">{certificateModalSession.expertReview.feedback}</p>
+                        </div>
+                      )}
+                      {certificateModalSession.expertReview.suggestions && (
+                        <div className="mt-3 bg-indigo-50/40 border border-indigo-100/50 p-3 rounded-xl">
+                          <p className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">Key Recommendations & Suggestions</p>
+                          <p className="text-sm text-slate-700 mt-1">{certificateModalSession.expertReview.suggestions}</p>
+                        </div>
+                      )}
                       {(certificateModalSession.expertReview.strengths?.length || certificateModalSession.expertReview.weaknesses?.length) ? (
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
                           {certificateModalSession.expertReview.strengths?.length ? <p className="text-xs text-slate-600"><strong>Strengths:</strong> {certificateModalSession.expertReview.strengths.join(", ")}</p> : null}
                           {certificateModalSession.expertReview.weaknesses?.length ? <p className="text-xs text-slate-600"><strong>Areas to improve:</strong> {certificateModalSession.expertReview.weaknesses.join(", ")}</p> : null}
                         </div>
                       ) : null}
                     </div>
-                    <p className="text-xs text-slate-500 border-t border-slate-100 pt-3">This session is completed and verified. You can download or share this certificate from the Certificates tab.</p>
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-700 flex items-start gap-2">
+                      <Award className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span>This session is completed and verified. You can download or share this certificate from the </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCertificateModalSession(null);
+                            setActiveView('certificates');
+                          }}
+                          className="font-bold underline text-blue-800 hover:text-blue-900 transition-colors"
+                        >
+                          Certificates tab
+                        </button>
+                        <span>.</span>
+                      </div>
+                    </div>
                   </>
                 ) : (
                   <p className="text-sm text-slate-500">Expert feedback is not available yet for this session.</p>

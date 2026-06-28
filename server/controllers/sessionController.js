@@ -315,9 +315,13 @@ export const getSessionsByCandidate = async (req, res) => {
                         overallRating: expertReview.overallRating,
                         technicalRating: expertReview.technicalRating,
                         communicationRating: expertReview.communicationRating,
+                        problemSolvingRating: expertReview.problemSolvingRating,
+                        designRating: expertReview.designRating,
+                        behavioralRating: expertReview.behavioralRating,
                         strengths: expertReview.strengths,
                         weaknesses: expertReview.weaknesses,
-                        feedback: expertReview.feedback
+                        feedback: expertReview.feedback,
+                        suggestions: expertReview.suggestions
                     } : null,
                     candidateReview: candidateReview ? {
                         overallRating: candidateReview.overallRating,
@@ -490,7 +494,21 @@ export const getAllSessions = async (req, res) => {
 export const submitReview = async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const { overallRating, technicalRating, communicationRating, feedback, strengths, weaknesses, expertId, candidateId, reviewerRole } = req.body;
+        const {
+            overallRating,
+            technicalRating,
+            communicationRating,
+            problemSolvingRating,
+            designRating,
+            behavioralRating,
+            feedback,
+            suggestions,
+            strengths,
+            weaknesses,
+            expertId,
+            candidateId,
+            reviewerRole
+        } = req.body;
 
         // Validation
         if (!sessionId || !overallRating || !reviewerRole) {
@@ -517,7 +535,11 @@ export const submitReview = async (req, res) => {
             overallRating,
             technicalRating: technicalRating || 0,
             communicationRating: communicationRating || 0,
+            problemSolvingRating: problemSolvingRating || 0,
+            designRating: designRating || 0,
+            behavioralRating: behavioralRating || 0,
             feedback,
+            suggestions,
             strengths: strengths || [],
             weaknesses: weaknesses || []
         });
@@ -535,8 +557,8 @@ export const submitReview = async (req, res) => {
 
             if (reviewerRole === 'expert') {
                 try {
-                    const payoutAmount = Number(session.price || 0) * 0.8; // Platform takes 20% fee
-                    if (!session.payoutCredited && payoutAmount > 0) {
+                    const payoutAmount = (Number(session.price) > 0 ? Number(session.price) : 1000) * 0.8; // Platform takes 20% fee, fallback to 1000 for test sessions
+                    if (!session.payoutCredited) {
                         let expertUser = null;
                         const rawExpertId = session.expertId || expertId;
 
@@ -545,12 +567,46 @@ export const submitReview = async (req, res) => {
                                 expertUser = await User.findOne({ email: rawExpertId.toLowerCase() });
                             } else {
                                 expertUser = await User.findById(rawExpertId).catch(() => null);
+                                if (!expertUser) {
+                                    const ExpertDetails = (await import('../models/expertModel.js')).default;
+                                    const expertProfile = await ExpertDetails.findById(rawExpertId).catch(() => null);
+                                    if (expertProfile && expertProfile.userId) {
+                                        expertUser = await User.findById(expertProfile.userId).catch(() => null);
+                                    }
+                                }
                             }
                         }
 
                         if (expertUser) {
                             expertUser.walletBalance = Number(expertUser.walletBalance || 0) + payoutAmount;
                             await expertUser.save();
+
+                            // Also sync availableBalance on the Wallet model (so it updates in the expert dashboard)
+                            const Wallet = (await import("../models/Wallet.js")).default;
+                            const WalletTransaction = (await import("../models/WalletTransaction.js")).default;
+
+                            let wallet = await Wallet.findOne({ userId: expertUser._id });
+                            if (!wallet) {
+                                wallet = new Wallet({
+                                    userId: expertUser._id,
+                                    availableBalance: 0
+                                });
+                            }
+                            wallet.availableBalance = Number(wallet.availableBalance || 0) + payoutAmount;
+                            await wallet.save();
+
+                            // Create a ledger transaction history entry
+                            await WalletTransaction.create({
+                                walletId: wallet._id,
+                                userId: expertUser._id,
+                                type: 'CREDIT',
+                                amount: payoutAmount,
+                                referenceId: session._id,
+                                referenceModel: 'Session',
+                                status: 'COMPLETED',
+                                description: `Payout for completed session ${session.sessionId}`,
+                                balanceAfter: wallet.availableBalance
+                            });
 
                             session.payoutCredited = true;
                             session.payoutCreditedAt = new Date();
@@ -665,6 +721,48 @@ export const getSessionReviews = async (req, res) => {
         });
     } catch (error) {
         console.error("Get Reviews Error:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+/* -------------------- Request Feedback -------------------- */
+export const requestFeedback = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const Session = (await import('../models/Session.js')).default;
+        const User = (await import('../models/User.js')).default;
+        const { createNotification } = await import('./notificationController.js');
+
+        const session = await Session.findOne({ sessionId });
+        if (!session) {
+            return res.status(404).json({ success: false, message: "Session not found" });
+        }
+
+        if (session.feedbackRequested) {
+            return res.status(400).json({ success: false, message: "Feedback already requested for this session" });
+        }
+
+        session.feedbackRequested = true;
+        await session.save();
+
+        // Get candidate name
+        const candidate = await User.findById(session.candidateId);
+        const candidateName = candidate?.name || "A candidate";
+
+        // Create notification for expert
+        await createNotification({
+            userId: session.expertId,
+            type: 'feedback_request',
+            title: 'Feedback Requested',
+            message: `${candidateName} has requested feedback/review for your completed session on ${session.startTime ? new Date(session.startTime).toLocaleDateString() : ""}.`,
+            metadata: {
+                sessionId: session.sessionId
+            }
+        });
+
+        res.json({ success: true, message: "Feedback request sent to the expert dashboard successfully" });
+    } catch (error) {
+        console.error("Request Feedback Error:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
