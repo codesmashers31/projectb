@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from '../lib/axios';
 import { ChevronLeft, ChevronRight, Search, X, RefreshCw, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { getProfileImageUrl } from "../lib/imageUtils";
 
 interface PersonalInformation {
     userName: string;
@@ -67,6 +68,88 @@ const PendingExpertsTable: React.FC = () => {
     const [rejectionReason, setRejectionReason] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
 
+    // Approve Modal State
+    const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+    const [approveCategory, setApproveCategory] = useState("IT");
+    const [approveLevel, setApproveLevel] = useState("Rising Mentor");
+    const [calculatedPrice, setCalculatedPrice] = useState<number | null>(null);
+    const [categoriesList, setCategoriesList] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await axios.get('/api/categories');
+                if (Array.isArray(res.data)) {
+                    setCategoriesList(res.data);
+                }
+            } catch (err) {
+                console.error("Failed to load categories:", err);
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    useEffect(() => {
+        if (!isApproveModalOpen) return;
+        const fetchPrice = async () => {
+            try {
+                const catDoc = categoriesList.find(c => c.name === approveCategory);
+                if (catDoc) {
+                    const res = await axios.get(`/api/pricing/category/${catDoc._id}?base=true`);
+                    const rule = (res.data || []).find((r: any) => r.level === approveLevel && r.duration === 30);
+                    if (rule) {
+                        setCalculatedPrice(rule.price);
+                    } else {
+                        setCalculatedPrice(catDoc.amount ?? 499);
+                    }
+                } else {
+                    setCalculatedPrice(499);
+                }
+            } catch (err) {
+                console.error("Error calculating dynamic price:", err);
+                setCalculatedPrice(499);
+            }
+        };
+        fetchPrice();
+    }, [approveCategory, approveLevel, isApproveModalOpen, categoriesList]);
+
+    const handleApproveClick = () => {
+        const appliedCat = selectedExpert?.personalInformation?.category || "IT";
+        const primaryCats = ["IT", "HR", "Business", "Design", "AI"];
+        const matchedCat = primaryCats.includes(appliedCat) ? appliedCat : "IT";
+        setApproveCategory(matchedCat);
+        
+        // Pre-populate with the expert's chosen level
+        const appliedLevel = selectedExpert?.professionalDetails?.level || 
+          (selectedExpert?.professionalDetails?.levels && selectedExpert.professionalDetails.levels[0]) || 
+          "Rising Mentor";
+        setApproveLevel(appliedLevel);
+        
+        setIsApproveModalOpen(true);
+    };
+
+    const handleApproveConfirm = async () => {
+        if (!selectedExpert) return;
+        setIsProcessing(true);
+        try {
+            const response = await axios.put(`/api/expert/approve/${selectedExpert._id}`, {
+                category: approveCategory,
+                level: approveLevel
+            });
+            if (response.data.success) {
+                toast.success("Expert approved successfully!");
+                setPendingExperts(prev => prev.filter(exp => exp._id !== selectedExpert._id));
+                setIsApproveModalOpen(false);
+                setSelectedExpert(null);
+            }
+        } catch (error) {
+            console.error("Error approving expert:", error);
+            toast.error("Failed to approve expert");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
@@ -82,7 +165,6 @@ const PendingExpertsTable: React.FC = () => {
             console.error("Error fetching pending experts:", error);
             toast.error("Failed to load pending experts");
         } finally {
-            // Small delay to prevent flickering
             setTimeout(() => setLoading(false), 300);
         }
     };
@@ -95,24 +177,6 @@ const PendingExpertsTable: React.FC = () => {
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm]);
-
-    const handleApprove = async () => {
-        if (!selectedExpert) return;
-        setIsProcessing(true);
-        try {
-            const response = await axios.put(`/api/expert/approve/${selectedExpert._id}`);
-            if (response.data.success) {
-                toast.success("Expert approved successfully!");
-                setPendingExperts(prev => prev.filter(exp => exp._id !== selectedExpert._id));
-                setSelectedExpert(null);
-            }
-        } catch (error) {
-            console.error("Error approving expert:", error);
-            toast.error("Failed to approve expert");
-        } finally {
-            setIsProcessing(false);
-        }
-    };
 
     const handleRejectClick = () => {
         setIsRejectModalOpen(true);
@@ -240,10 +304,10 @@ const PendingExpertsTable: React.FC = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="font-semibold text-gray-900 tabular-nums">
-                                            {typeof exp.price === "number" && Number.isFinite(exp.price) ? `₹${exp.price}` : "—"}
+                                        <span className="font-semibold text-gray-900 tabular-nums text-xs">
+                                            {exp.priceDisplay || (typeof exp.price === "number" && Number.isFinite(exp.price) ? `₹${exp.price}` : "—")}
                                         </span>
-                                        <span className="ml-2 text-[11px] text-gray-500">INR</span>
+                                        <span className="ml-1.5 text-[10px] text-gray-500 font-medium">INR</span>
                                     </td>
                                     <td className="px-6 py-4 text-gray-600">
                                         {exp.personalInformation.city}, {exp.personalInformation.state}
@@ -375,6 +439,18 @@ const PendingExpertsTable: React.FC = () => {
                                             <span className="text-sm text-gray-500">Experience</span>
                                             <span className="text-sm font-medium text-gray-900">{selectedExpert.professionalDetails?.totalExperience || 0} Years</span>
                                         </div>
+                                        <div className="flex justify-between py-2 border-b border-gray-50">
+                                            <span className="text-sm text-gray-500">Requested Category</span>
+                                            <span className="text-sm font-bold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">{selectedExpert.personalInformation?.category || "N/A"}</span>
+                                        </div>
+                                        <div className="flex justify-between py-2 border-b border-gray-50">
+                                            <span className="text-sm text-gray-500">Requested Level(s)</span>
+                                            <span className="text-sm font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-100">
+                                                {selectedExpert.professionalDetails?.levels && selectedExpert.professionalDetails.levels.length > 0 
+                                                    ? selectedExpert.professionalDetails.levels.join(", ") 
+                                                    : (selectedExpert.professionalDetails?.level || "N/A")}
+                                            </span>
+                                        </div>
                                     </div>
                                 </section>
                             </div>
@@ -449,7 +525,7 @@ const PendingExpertsTable: React.FC = () => {
 
                                     {selectedExpert.verification?.aadhar?.url ? (
                                         <a
-                                            href={selectedExpert.verification.aadhar.url}
+                                            href={getProfileImageUrl(selectedExpert.verification.aadhar.url)}
                                             target="_blank"
                                             rel="noreferrer"
                                             className="flex items-center justify-center gap-2 p-3 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100 transition-colors border border-amber-200"
@@ -464,7 +540,7 @@ const PendingExpertsTable: React.FC = () => {
 
                                     {selectedExpert.verification?.companyId?.url ? (
                                         <a
-                                            href={selectedExpert.verification.companyId.url}
+                                            href={getProfileImageUrl(selectedExpert.verification.companyId.url)}
                                             target="_blank"
                                             rel="noreferrer"
                                             className="flex items-center justify-center gap-2 p-3 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors border border-purple-200"
@@ -488,7 +564,7 @@ const PendingExpertsTable: React.FC = () => {
                                     Reject Application
                                 </button>
                                 <button
-                                    onClick={handleApprove}
+                                    onClick={handleApproveClick}
                                     disabled={isProcessing}
                                     className="px-6 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
                                 >
@@ -535,6 +611,65 @@ const PendingExpertsTable: React.FC = () => {
                                 className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isProcessing ? "Rejecting..." : "Confirm Rejection"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Approval Config Modal */}
+            {isApproveModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                    <div
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+                        onClick={() => setIsApproveModalOpen(false)}
+                    ></div>
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 transform transition-all border border-gray-100 animate-in zoom-in-95 duration-200">
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                <span className="p-1.5 bg-green-50 text-green-600 rounded-lg">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                        <polyline points="22 4 12 14.01 9 11.01" />
+                                    </svg>
+                                </span>
+                                Confirm Expert Approval
+                            </h3>
+                            <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                                Are you sure you want to approve <strong>{selectedExpert?.personalInformation?.userName}</strong> as an active mentor? The expert will be approved with the following requested details:
+                            </p>
+                            
+                            {selectedExpert && (
+                                <div className="mt-4 p-4 bg-purple-50/70 border border-purple-100 rounded-xl text-sm space-y-2 text-purple-950 font-medium">
+                                    <div>
+                                        <span className="font-bold text-purple-900">Requested Category:</span> {selectedExpert.personalInformation?.category || "N/A"}
+                                    </div>
+                                    <div>
+                                        <span className="font-bold text-purple-900">Requested Level(s):</span> {selectedExpert.professionalDetails?.levels && selectedExpert.professionalDetails.levels.length > 0
+                                            ? selectedExpert.professionalDetails.levels.join(", ")
+                                            : (selectedExpert.professionalDetails?.level || "N/A")}
+                                    </div>
+                                    <div className="pt-2 border-t border-purple-100 flex justify-between items-center text-xs mt-2">
+                                        <span className="font-bold text-purple-900">Estimated Price Range:</span>
+                                        <span className="font-bold text-purple-750 text-sm">{selectedExpert.priceDisplay || "—"}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-8">
+                            <button
+                                onClick={() => setIsApproveModalOpen(false)}
+                                className="px-4 py-2 text-xs font-bold text-gray-500 hover:bg-gray-50 rounded-xl transition border border-transparent"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleApproveConfirm}
+                                disabled={isProcessing}
+                                className="px-5 py-2 bg-green-600 text-white text-xs font-bold rounded-xl hover:bg-green-700 transition shadow-lg shadow-green-100 disabled:opacity-50"
+                            >
+                                {isProcessing ? "Approving..." : "Confirm Approval"}
                             </button>
                         </div>
                     </div>

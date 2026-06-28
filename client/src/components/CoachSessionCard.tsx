@@ -84,8 +84,9 @@ const CoachSessionCard = React.memo(function CoachSessionCard() {
         totalSessions: expert.metrics?.totalSessions || 0,
         category: cat,
         bio: expert.personalInformation?.bio || "",
+        level: expert.professionalDetails?.level || "Intermediate",
         allTags: [cat, ...skills, expert.professionalDetails?.industry].filter(Boolean).map(s => s.toString())
-      } as MentorProfile & { category: string, allTags: string[] };
+      } as MentorProfile & { category: string, allTags: string[], level?: string };
     });
   }, [expertsData, isExpertsLoading]);
 

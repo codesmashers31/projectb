@@ -253,7 +253,7 @@ const Navigation = () => {
                   </button>
 
                   {isMoreOpen && (
-                    <div className="absolute left-0 mt-3 w-64 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute left-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                       <div className="p-1.5 space-y-0.5">
                         {moreItems.map((item) => (
                           <Link
@@ -308,7 +308,7 @@ const Navigation = () => {
                 </button>
 
                 {isNotificationOpen && (
-                  <div className="absolute right-0 mt-3 w-80 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
                       <h3 className="font-semibold text-slate-900 text-sm tracking-tight">Notifications</h3>
                       {unreadCount > 0 && (
@@ -373,7 +373,7 @@ const Navigation = () => {
                   </button>
 
                   {isProfileMenuOpen && (
-                    <div className="absolute right-0 mt-3 w-64 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                       <div className="px-4 py-4 border-b border-slate-100 bg-slate-50/30 flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm">
                           <Avatar name={user?.name} src={profileImage} className="w-full h-full" />

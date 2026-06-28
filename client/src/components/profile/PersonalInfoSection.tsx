@@ -4,7 +4,7 @@ import axios from '../../lib/axios';
 import { toast } from "sonner";
 import { useAuth } from "../../context/AuthContext";
 import { Country, State, City } from "country-state-city";
-import { getProfileImageUrl } from "../../lib/imageUtils";
+import { getProfileImageUrl, compressImage } from "../../lib/imageUtils";
 
 interface PersonalInfo {
     phone?: string;
@@ -181,10 +181,16 @@ export default function PersonalInfoSection({ profileData, onUpdate }: PersonalI
         const file = e.target.files?.[0];
         if (!file) return;
 
+        if (file.size > 1 * 1024 * 1024) {
+            toast.error("Image size must be below 1MB. Please choose a smaller photo.");
+            return;
+        }
+
         try {
             setUploading(true);
+            const compressedFile = await compressImage(file);
             const formData = new FormData();
-            formData.append("profileImage", file);
+            formData.append("profileImage", compressedFile);
 
             const response = await axios.post(
                 "/api/user/profile/image",

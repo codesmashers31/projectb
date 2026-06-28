@@ -165,7 +165,6 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
         if (!p.country) newErrors.country = "Country is required";
         if (!p.state) newErrors.state = "State is required";
         if (!p.city) newErrors.city = "City is required";
-        if (!p.category || !p.category.trim()) newErrors.category = "Expertise category is required (set once, cannot be changed later)";
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -338,24 +337,6 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
                         placeholder="Select City"
                         error={errors.city}
                     />
-
-                    {/* Category: set once, then disabled */}
-                    <div className="pt-2 border-t border-gray-200 mt-2">
-                        <FormSelect
-                            label="Expertise Category"
-                            value={profile.personal.category}
-                            onChange={(v: string) => setPersonalField("category", v)}
-                            options={categories.map((c) => ({ value: c.name, label: c.name }))}
-                            disabled={!!(profile.personal.category && profile.personal.category.trim())}
-                            placeholder="Choose your category (set once, cannot be changed)"
-                            error={errors.category}
-                        />
-                        {profile.personal.category && profile.personal.category.trim() && (
-                            <p className="text-xs text-amber-600 mt-1.5 flex items-center gap-1">
-                                <Lock className="w-3.5 h-3.5" /> This category cannot be changed. You can add or remove skills in Dashboard → Skills & Experience.
-                            </p>
-                        )}
-                    </div>
                 </div>
             </div>
 

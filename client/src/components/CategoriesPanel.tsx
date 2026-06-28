@@ -2,14 +2,13 @@ import { useState, useEffect, useMemo } from "react";
 import axios from "../lib/axios";
 import { isAxiosError } from "axios";
 import { toast } from "sonner";
-import { Search, RefreshCw, ChevronLeft, ChevronRight, Plus, FolderKanban, Banknote } from "lucide-react";
+import { Search, RefreshCw, ChevronLeft, ChevronRight, Plus, FolderKanban } from "lucide-react";
 
-// Define the Category interface based on usage
+// Define the Category interface
 interface Category {
   _id: string;
   name: string;
   description: string;
-  amount?: number | null;
   status: "Active" | "Inactive";
   type: string;
 }
@@ -26,20 +25,15 @@ const CategoriesPanel = () => {
   const [pageSize, setPageSize] = useState(8);
 
   // Modal States
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editAmount, setEditAmount] = useState<string | number>("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState({
     name: "",
     description: "",
-    amount: "",
   });
 
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      // url was /categories but needs /api/categories because baseURL is root
       const response = await axios.get(`/api/categories`);
 
       if (Array.isArray(response.data)) {
@@ -78,34 +72,9 @@ const CategoriesPanel = () => {
     }
   };
 
-  const openEditModal = (cat: Category) => {
-    setSelectedId(cat._id);
-    setEditAmount(cat.amount != null ? cat.amount : "");
-    setShowEditModal(true);
-  };
-
-  const saveAmount = async () => {
-    if (editAmount === "" || Number(editAmount) < 0) return;
-
-    try {
-      await axios.put(`/api/categories/${selectedId}`, { amount: Number(editAmount) });
-
-      setCategories((prev) =>
-        prev.map((cat) =>
-          cat._id === selectedId ? { ...cat, amount: Number(editAmount) } : cat
-        )
-      );
-      setShowEditModal(false);
-      toast.success("Amount updated successfully");
-    } catch (error) {
-      console.error("Error updating amount:", error);
-      toast.error("Failed to update amount");
-    }
-  };
-
   const addCategory = async () => {
-    if (!newCategory.name || !newCategory.amount) {
-      toast.error("Name and amount are required");
+    if (!newCategory.name) {
+      toast.error("Name is required");
       return;
     }
 
@@ -113,7 +82,6 @@ const CategoriesPanel = () => {
       const payload = {
         name: newCategory.name,
         description: newCategory.description,
-        amount: Number(newCategory.amount),
         status: "Active",
         type: "technical" // Default type
       };
@@ -121,7 +89,7 @@ const CategoriesPanel = () => {
       const response = await axios.post(`/api/categories`, payload);
 
       setCategories([...categories, response.data]);
-      setNewCategory({ name: "", description: "", amount: "" });
+      setNewCategory({ name: "", description: "" });
       setShowAddModal(false);
       toast.success("Category added successfully");
     } catch (error: any) {
@@ -150,15 +118,11 @@ const CategoriesPanel = () => {
     if (!sortField) return filteredCategories;
     const arr = [...filteredCategories];
     arr.sort((a, b) => {
-      if (sortField === "amount") {
-        return sortOrder === "asc" ? a.amount - b.amount : b.amount - a.amount;
-      }
       if (sortField === "name") {
         return sortOrder === "asc"
           ? a.name.localeCompare(b.name)
           : b.name.localeCompare(a.name);
       }
-      // Add other sort fields if needed, default string compare
       const valA = String(a[sortField] || "");
       const valB = String(b[sortField] || "");
       return sortOrder === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
@@ -196,7 +160,6 @@ const CategoriesPanel = () => {
     <tr className="animate-pulse border-b border-gray-100/50">
       <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-48"></div></td>
       <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-full max-w-xs"></div></td>
-      <td className="px-6 py-4"><div className="h-4 bg-gray-200 rounded w-24"></div></td>
       <td className="px-6 py-4"><div className="h-6 bg-gray-200 rounded-full w-20"></div></td>
       <td className="px-6 py-4 text-right"><div className="h-8 bg-gray-200 rounded w-32 ml-auto"></div></td>
     </tr>
@@ -252,12 +215,6 @@ const CategoriesPanel = () => {
                 Category
               </th>
               <th className="py-4 px-6 font-medium text-gray-500 text-xs uppercase tracking-wider">Description</th>
-              <th
-                onClick={() => handleSort("amount")}
-                className="py-4 px-6 font-medium text-gray-500 text-xs uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-              >
-                Base price (₹)
-              </th>
               <th className="py-4 px-6 font-medium text-gray-500 text-xs uppercase tracking-wider">Status</th>
               <th className="py-4 px-6 font-medium text-gray-500 text-xs uppercase tracking-wider text-right">Actions</th>
             </tr>
@@ -284,12 +241,6 @@ const CategoriesPanel = () => {
                     <p className="text-gray-600 text-sm max-w-xs truncate" title={cat.description}>{cat.description || "-"}</p>
                   </td>
                   <td className="py-4 px-6">
-                    <div className="flex items-center gap-2 text-gray-900 font-medium">
-                      <Banknote size={14} className="text-gray-400" />
-                      ₹{cat.amount ? cat.amount.toLocaleString() : 0}
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${cat.status === "Active"
                       ? "bg-green-50 text-green-700 border-green-100"
                       : "bg-red-50 text-red-700 border-red-100"
@@ -300,12 +251,6 @@ const CategoriesPanel = () => {
                   </td>
                   <td className="py-4 px-6 text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openEditModal(cat)}
-                        className="px-3 py-1.5 bg-gray-50 text-gray-700 hover:bg-gray-100 rounded-md text-xs font-medium transition-colors border border-gray-200"
-                      >
-                        Edit
-                      </button>
                       <button
                         onClick={() => toggleStatus(cat._id, cat.status)}
                         className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors border ${cat.status === "Active"
@@ -321,7 +266,7 @@ const CategoriesPanel = () => {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="py-20 text-center text-gray-500">
+                <td colSpan={4} className="py-20 text-center text-gray-500">
                   No categories found matching your search.
                 </td>
               </tr>
@@ -346,7 +291,6 @@ const CategoriesPanel = () => {
             </button>
             <div className="flex items-center space-x-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
-                // Simple logic to show limited pages
                 if (p !== 1 && p !== totalPages && (p < page - 1 || p > page + 1)) {
                   if (p === page - 2 || p === page + 2) return <span key={p} className="px-1 text-gray-400">..</span>;
                   return null;
@@ -372,52 +316,6 @@ const CategoriesPanel = () => {
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Amount Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-              <h3 className="text-lg font-bold text-gray-900">Edit base price</h3>
-              <p className="text-xs text-gray-500 mt-1">Used when no level-specific rule exists in Admin → Pricing.</p>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Base price (₹) for 30 min
-                  </label>
-                  <div className="relative">
-                    <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="number"
-                      value={editAmount}
-                      onChange={(e) => setEditAmount(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                      placeholder="Enter amount"
-                      min="0"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 bg-white"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveAmount}
-                className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                Save Changes
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -458,24 +356,6 @@ const CategoriesPanel = () => {
                     rows={3}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all resize-none"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Amount (₹)
-                  </label>
-                  <div className="relative">
-                    <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      value={newCategory.amount}
-                      onChange={(e) =>
-                        setNewCategory({ ...newCategory, amount: e.target.value })
-                      }
-                      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                      min="0"
-                    />
-                  </div>
                 </div>
               </div>
             </div>

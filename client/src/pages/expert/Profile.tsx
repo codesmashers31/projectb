@@ -4,6 +4,7 @@ import PersonalInfo from "../../components/PersonalInfo";
 import ExpertEducation from "../../components/ExpertEducation";
 import ExpertProfession from "../../components/ExpertProfession";
 import VerificationManager from "../../components/expert/VerificationManager";
+import CategoryAndLevelSection from "../../components/CategoryAndLevelSection";
 import axios from '../../lib/axios';
 import { useAuth } from "../../context/AuthContext";
 import { Skeleton } from "../../components/ui/skeleton";
@@ -14,13 +15,15 @@ import {
   ShieldCheck,
   LayoutDashboard,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Award
 } from "lucide-react";
 
 // Define the tabs with icons and identifiers
 const TABS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "personal", label: "Personal Info", icon: User },
+  { id: "tier", label: "Category & Level", icon: Award },
   { id: "education", label: "Education", icon: BookOpen },
   { id: "profession", label: "Experience", icon: Briefcase },
   { id: "verification", label: "Verification", icon: ShieldCheck },
@@ -95,6 +98,8 @@ export default function ProfilePage() {
         return <ExpertProfileHeader onNavigate={(tab) => { setActive(tab); }} onRefresh={fetchProfileData} />;
       case "personal":
         return <PersonalInfo {...commonProps} isMissing={isSectionMissing('personal')} />;
+      case "tier":
+        return <CategoryAndLevelSection {...commonProps} />;
       case "education":
         return <ExpertEducation {...commonProps} isMissing={isSectionMissing('education')} />;
       case "profession":
@@ -184,12 +189,12 @@ export default function ProfilePage() {
               <div className="p-4 mt-auto border-t border-gray-100 bg-gray-50/50">
                 <div className="mb-2 flex items-center justify-between text-xs font-semibold text-gray-600">
                   <span>Profile Completion</span>
-                  <span>{Math.round((5 - missingSections.length) / 5 * 100)}%</span>
+                  <span>{Math.max(0, Math.round((7 - missingSections.length) / 7 * 100))}%</span>
                 </div>
                 <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden mb-3">
                   <div
                     className="h-full bg-blue-600 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.round((5 - missingSections.length) / 5 * 100)}%` }}
+                    style={{ width: `${Math.max(0, Math.round((7 - missingSections.length) / 7 * 100))}%` }}
                   />
                 </div>
                 {missingSections.length > 0 ? (

@@ -166,7 +166,7 @@ const BookSessionPage = () => {
   // Skill (for pricing): expert's skills only; duration 30 or 60; level from expert
   const skillOptions = profile?.skills?.length ? profile.skills : (profile?.category ? [profile.category] : ["General"]);
   const [selectedSkill, setSelectedSkill] = useState<string>(skillOptions[0] || "General");
-  const [expertLevel, setExpertLevel] = useState(existingProfile?.level || "Intermediate");
+  const [expertLevel, setExpertLevel] = useState(existingProfile?.levels?.[0] || existingProfile?.level || "Rising Mentor");
   // Only show durations the expert offers (30 and/or 60)
   const durationOptions = useMemo<SessionDuration[]>(() => {
     const allowed = profile?.availability?.allowedDurations;
@@ -235,7 +235,11 @@ const BookSessionPage = () => {
   }, [expertId, profile?.category]);
 
   useEffect(() => {
-    if (profile?.level) setExpertLevel(profile.level);
+    if (profile?.levels && profile.levels.length > 0) {
+      setExpertLevel(profile.levels[0]);
+    } else if (profile?.level) {
+      setExpertLevel(profile.level);
+    }
     const opts = profile?.skills?.length ? profile.skills : (profile?.category ? [profile.category] : ["General"]);
     if (opts.length && !opts.includes(selectedSkill)) setSelectedSkill(opts[0]);
     const dur = profile?.availability?.allowedDurations?.length ? profile.availability.allowedDurations : (profile?.availability?.sessionDuration ? [profile.availability.sessionDuration] : [30]);
@@ -751,7 +755,7 @@ const BookSessionPage = () => {
 
   // Single source for price display — avoids double rupee symbol and handles string prices like "₹700/hr"
   const basePrice = parsePriceToNumber(sessionPrice) ?? 0;
-  const displayPrice = 3; // FORCED TO 3 RS FOR TESTING
+  const displayPrice = calculatedPrice || basePrice;
   const formatPrice = (amount: number | null | undefined) => {
     if (amount == null || !Number.isFinite(amount)) return "—";
     return `₹${amount}`;
@@ -882,23 +886,31 @@ const BookSessionPage = () => {
         </button>
       </div>
 
-      {/* Skill, level, duration */}
+      {/* Level & Duration */}
       <div className="space-y-4 sm:space-y-5">
-        <div>
-          <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-2">Skill / Topic</label>
-          <PremiumSelect
-            value={selectedSkill}
-            options={skillSelectOptions}
-            onChange={setSelectedSkill}
-          />
-        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-2">Expert Level</label>
-            <div className="w-full text-sm font-semibold text-gray-700 bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl">
-              {expertLevel}
-            </div>
-            <p className="text-xs text-gray-500 mt-1.5">Set by expert</p>
+            {profile?.levels && profile.levels.length > 1 ? (
+              <select
+                value={expertLevel}
+                onChange={(e) => setExpertLevel(e.target.value)}
+                className="w-full text-sm font-semibold text-gray-700 bg-white border border-slate-200 px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-300 cursor-pointer font-semibold text-gray-800"
+              >
+                {profile.levels.map((lvl) => (
+                  <option key={lvl} value={lvl}>
+                    {lvl}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="w-full text-sm font-semibold text-gray-700 bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl">
+                {expertLevel}
+              </div>
+            )}
+            <p className="text-xs text-gray-500 mt-1.5">
+              {profile?.levels && profile.levels.length > 1 ? "Choose your session level tier" : "Set by expert"}
+            </p>
           </div>
           <div>
             <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-2">Duration</label>
@@ -1510,9 +1522,9 @@ const BookSessionPage = () => {
               {CareerAdsSection()}
             </div>
 
-            {/* Sidebar Columns */}
-            <div className="hidden lg:block lg:col-span-4 h-fit sticky top-[88px]">
-              <div className="space-y-6">
+            {/* Right Sidebar Column */}
+            <div className="hidden lg:block lg:col-span-4 lg:sticky lg:top-[88px] lg:max-h-[calc(100vh-110px)] lg:overflow-y-auto no-scrollbar">
+              <div className="space-y-6 pb-6">
                 {BookingCard()}
 
                 {/* Proof Card */}

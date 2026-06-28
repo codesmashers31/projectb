@@ -13,7 +13,7 @@ const pricingRuleSchema = new mongoose.Schema({
     },
     level: {
         type: String,
-        enum: ['Beginner', 'Intermediate', 'Advanced'],
+        enum: ['Rising Mentor', 'Professional Mentor', 'Senior Mentor', 'Elite Mentor', 'FAANG Mentor', 'Beginner', 'Intermediate', 'Advanced'],
         required: true
     },
     duration: {

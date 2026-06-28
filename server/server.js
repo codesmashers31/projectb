@@ -43,6 +43,8 @@ import certificationRoutes from "./routes/certificationRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import tipsRoutes from "./routes/tipsRoutes.js";
 import payoutRoutes from "./routes/payoutRoutes.js";
+import hrContactRoutes from "./routes/hrContactRoutes.js";
+import certificationRuleRoutes from "./routes/certificationRuleRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import webhookRoutes from "./routes/webhookRoutes.js";
 
@@ -91,7 +93,7 @@ const corsOptions = {
     console.log(`[CORS] Blocked origin: ${origin}`);
     callback(new Error("Not allowed by CORS"));
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization", "userid"],
 };
@@ -193,6 +195,8 @@ app.use('/api/tips', tipsRoutes);
 app.use('/api/payouts', payoutRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/webhooks', webhookRoutes);
+app.use('/api/hr-contacts', hrContactRoutes);
+app.use('/api/certification-rules', certificationRuleRoutes);
 
 const PORT = process.env.PORT || 5000;
 

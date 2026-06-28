@@ -106,8 +106,12 @@ const expertSchema = new mongoose.Schema(
       industry: { type: String, trim: true },
       level: {
         type: String,
-        enum: ["Beginner", "Intermediate", "Advanced"],
-        default: "Intermediate"
+        enum: ["Rising Mentor", "Professional Mentor", "Senior Mentor", "Elite Mentor", "FAANG Mentor", "Beginner", "Intermediate", "Advanced"],
+        default: "Rising Mentor"
+      },
+      levels: {
+        type: [String],
+        default: ["Rising Mentor"]
       },
       previous: { type: [experienceSchema], default: [] }
     },

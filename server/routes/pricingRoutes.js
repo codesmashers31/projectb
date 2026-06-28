@@ -6,9 +6,25 @@ import {
   getCalculatePrice,
   listSkillsWithPricing,
   updateSkillBasePrice,
+  getPricingMatrix,
+  bulkUpdateMatrix,
+  resetPricingDefaults,
+  getPricingHistory,
 } from "../controllers/pricingController.js";
 
 const router = express.Router();
+
+// Get pricing rules matrix
+router.get("/", getPricingMatrix);
+
+// Bulk Update Pricing Matrix
+router.post("/bulk-update", bulkUpdateMatrix);
+
+// Reset pricing defaults
+router.post("/reset", resetPricingDefaults);
+
+// Price change history logs
+router.get("/history", getPricingHistory);
 
 // Bulk Upsert Rules (legacy)
 router.post("/bulk", bulkUpsertPricingRules);

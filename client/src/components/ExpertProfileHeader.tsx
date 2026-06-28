@@ -4,6 +4,7 @@ import axios from '../lib/axios';
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { Camera, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { compressImage } from "../lib/imageUtils";
 
 // Progress Ring Component
 const ProgressRing = memo(({
@@ -108,10 +109,16 @@ const ExpertProfileHeader = memo(({ onRefresh }: { onNavigate?: (tab: string) =>
   const handlePhotoUpload = async (file: File) => {
     if (!file || !user) return;
 
+    if (file.size > 1 * 1024 * 1024) {
+      toast.error("Photo size must be below 1MB. Please upload a smaller image.");
+      return;
+    }
+
     setUploading(true);
     try {
+      const compressedFile = await compressImage(file);
       const formData = new FormData();
-      formData.append("photo", file);
+      formData.append("photo", compressedFile);
 
       const res = await axios.post("/api/expert/profile/photo", formData, {
         headers: { "Content-Type": "multipart/form-data" }

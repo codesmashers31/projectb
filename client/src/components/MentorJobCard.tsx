@@ -21,6 +21,7 @@ export interface MentorProfile {
     category?: string;
     allTags?: string[];
     bio?: string;
+    level?: string;
 }
 
 // SVG Icons — no emojis
@@ -193,7 +194,7 @@ export const MentorJobCard = React.memo(({ mentor }: { mentor: MentorProfile }) 
     return (
       <div 
         onClick={handleCardClick}
-        className="bg-white border border-slate-200/80 rounded-3xl p-4 shadow-[0_8px_30px_rgba(0,0,0,0.02)] w-full max-w-[280px] sm:max-w-[290px] flex flex-col items-center relative hover:shadow-[0_12px_40px_rgba(0,0,0,0.05)] hover:border-indigo-200/80 transition-all duration-300 font-sans cursor-pointer h-full justify-between gap-3.5"
+        className="bg-white border border-slate-200 rounded-3xl p-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] w-full max-w-[280px] sm:max-w-[290px] flex flex-col items-center relative hover:shadow-[0_12px_35px_rgba(124,58,237,0.08)] hover:border-purple-300 transition-all duration-300 font-sans cursor-pointer h-full justify-between gap-3.5"
       >
         {/* Heart button */}
         <button
@@ -252,7 +253,7 @@ export const MentorJobCard = React.memo(({ mentor }: { mentor: MentorProfile }) 
           <p className="text-[11px] text-gray-500 font-semibold mb-1 truncate max-w-full px-2">{mentor.role}</p>
           
           {/* Company */}
-          <div className="flex items-center justify-center gap-1.5 mb-2.5 max-w-full px-2">
+          <div className="flex items-center justify-center gap-1.5 mb-2 max-w-full px-2">
             {mentor.company && (
               <>
                 <CompanyLogo company={mentor.company} />
@@ -262,6 +263,20 @@ export const MentorJobCard = React.memo(({ mentor }: { mentor: MentorProfile }) 
             {isExAmazon && (
               <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full shrink-0">
                 Ex-Amazon
+              </span>
+            )}
+          </div>
+
+          {/* Category & Level Badges */}
+          <div className="flex items-center justify-center gap-2 mb-3.5 flex-wrap px-2">
+            {mentor.category && (
+              <span className="text-[9px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 bg-purple-50 text-purple-600 border border-purple-100 rounded-md shrink-0">
+                {mentor.category} Category
+              </span>
+            )}
+            {mentor.level && (
+              <span className="text-[9px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-md shrink-0">
+                {mentor.level}
               </span>
             )}
           </div>

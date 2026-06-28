@@ -23,20 +23,19 @@ const cloudProfileStorage = createCloudinaryStorage({
 
 const cloudVerificationStorage = createCloudinaryStorage({
   cloudinary: cloudinary,
-  params: async (req, file) => {
-    // If PDF, use raw to prevent image conversion issues
+  params: (req, file, cb) => {
     if (file.mimetype === "application/pdf") {
-      return {
+      cb(null, {
         folder: "mockeefy/verification",
-        resource_type: "raw", // Important for PDFs to be downloadable/viewable as files
-        format: undefined, // Keep original extension
-      };
+        resource_type: "raw",
+      });
+    } else {
+      cb(null, {
+        folder: "mockeefy/verification",
+        resource_type: "image",
+        allowed_formats: ["jpg", "jpeg", "png"],
+      });
     }
-    return {
-      folder: "mockeefy/verification",
-      resource_type: "image",
-      allowed_formats: ["jpg", "jpeg", "png"],
-    };
   },
 });
 

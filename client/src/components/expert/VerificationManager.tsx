@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import axios from '../../lib/axios';
 import { toast } from 'sonner';
 import { Upload, FileText, CheckCircle, AlertCircle, Save, ExternalLink } from 'lucide-react';
+import { compressImage } from '../../lib/imageUtils';
 
 interface VerificationDocs {
     companyId?: { url: string; name: string };
@@ -13,6 +14,7 @@ export default function VerificationManager() {
     const [verification, setVerification] = useState<VerificationDocs>({});
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
 
     // Form states
     const [linkedinUrl, setLinkedinUrl] = useState('');
@@ -46,8 +48,8 @@ export default function VerificationManager() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'company' | 'aadhar') => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                toast.error("File size should be less than 5MB");
+            if (file.size > 1 * 1024 * 1024) { // 1MB limit
+                toast.error("File size must be below 1MB. Please upload a smaller file.");
                 return;
             }
             if (type === 'company') setCompanyFile(file);
@@ -63,14 +65,25 @@ export default function VerificationManager() {
 
         try {
             setUploading(true);
+            setUploadProgress(0);
             const formData = new FormData();
 
             if (linkedinUrl) formData.append('linkedin', linkedinUrl);
-            if (companyFile) formData.append('companyIdFile', companyFile);
-            if (aadharFile) formData.append('aadharFile', aadharFile);
+            if (companyFile) {
+                const compressedCompany = await compressImage(companyFile);
+                formData.append('companyIdFile', compressedCompany);
+            }
+            if (aadharFile) {
+                const compressedAadhar = await compressImage(aadharFile);
+                formData.append('aadharFile', compressedAadhar);
+            }
 
             const res = await axios.put('/api/expert/verification', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
+                onUploadProgress: (progressEvent) => {
+                    const percentCompleted = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+                    setUploadProgress(percentCompleted);
+                }
             });
 
             if (res.data.success) {
@@ -173,7 +186,7 @@ export default function VerificationManager() {
                                     <Upload className="w-8 h-8 text-gray-400" />
                                     <div className="space-y-1">
                                         <p className="text-sm font-medium text-gray-700">Click to upload</p>
-                                        <p className="text-xs text-gray-500">PDF, PNG, JPG up to 5MB</p>
+                                        <p className="text-xs text-gray-500">PDF, PNG, JPG up to 1MB</p>
                                     </div>
                                 </label>
                             )}
@@ -218,7 +231,7 @@ export default function VerificationManager() {
                                     <Upload className="w-8 h-8 text-gray-400" />
                                     <div className="space-y-1">
                                         <p className="text-sm font-medium text-gray-700">Click to upload</p>
-                                        <p className="text-xs text-gray-500">PDF, PNG, JPG up to 5MB</p>
+                                        <p className="text-xs text-gray-500">PDF, PNG, JPG up to 1MB</p>
                                     </div>
                                 </label>
                             )}
@@ -233,7 +246,7 @@ export default function VerificationManager() {
                         className="flex items-center gap-2 bg-[#004fcb] hover:bg-[#003bb5] text-white px-8 py-2.5 rounded-lg font-medium shadow-sm transition-all disabled:opacity-70 active:scale-95"
                     >
                         {uploading ? (
-                            <>Uploading...</>
+                            <>Uploading ({uploadProgress}%)...</>
                         ) : (
                             <>
                                 <Save className="w-4 h-4" />

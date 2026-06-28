@@ -185,8 +185,19 @@ function getSessionTimeAndCountdown(session: Session, now: Date): { timeLabel: s
   const diffMs = start.getTime() - now.getTime();
   const threeMinMs = 3 * 60 * 1000;
   if (diffMs > threeMinMs) {
-    const min = Math.ceil(diffMs / 60000);
-    return { timeLabel, countdown: `Starts in ${min} min`, joinable: false };
+    const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+    const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    const minutes = Math.floor((diffMs % (60 * 60 * 1000)) / 60000);
+
+    let countdownStr = "Starts in ";
+    if (days > 0) {
+      countdownStr += `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      countdownStr += `${hours}h ${minutes}m`;
+    } else {
+      countdownStr += `${minutes} min`;
+    }
+    return { timeLabel, countdown: countdownStr, joinable: false };
   }
   const m = Math.floor(diffMs / 60000);
   const s = Math.floor((diffMs % 60000) / 1000);
@@ -273,7 +284,8 @@ const MySessions = ({ initialViewOverride }: { initialViewOverride?: 'overview' 
           expert: s.expertDetails?.name || 'Expert',
           company: s.expertDetails?.company || '',
           profileImage: s.expertDetails?.profileImage,
-          category: s.category || 'Interview',
+          category: s.category || s.expertDetails?.category || 'IT',
+          topic: s.skill || (s.topics && s.topics[0]) || 'Interview Simulation',
           startTime: s.startTime,
           endTime: s.endTime,
           time: new Date(s.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -397,26 +409,33 @@ const MySessions = ({ initialViewOverride }: { initialViewOverride?: 'overview' 
                         const displayStatus = getDisplayStatus(session);
                         const { timeLabel, countdown, joinable } = getSessionTimeAndCountdown(session, now);
                         return (
-                          <tr key={session.id} className="group hover:bg-slate-50/50 transition-colors">
-                            <td className="px-6 py-5">
+                          <tr key={session.id} className="group hover:bg-slate-50/50 transition-colors align-middle">
+                            <td className="px-6 py-5 align-middle">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border border-slate-200/60 p-0.5 shadow-sm shrink-0">
                                   <SessionAvatar name={session.expert} profileImage={session.profileImage} />
                                 </div>
                                 <div className="min-w-0">
                                   <p className="font-bold text-slate-900 text-sm truncate">Your session with {session.expert}</p>
-                                  <p className="text-xs text-slate-500 mt-0.5 truncate">{session.category} Simulation</p>
+                                  <div className="flex flex-col gap-1 items-start mt-1">
+                                    <span className="text-xs text-slate-600 font-semibold truncate max-w-[200px]">
+                                      Interview
+                                    </span>
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-[#004fcb] border border-blue-100 uppercase">
+                                      {session.category}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </td>
-                            <td className="px-6 py-5 hidden sm:table-cell">
+                            <td className="px-6 py-5 hidden sm:table-cell align-middle whitespace-nowrap">
                               <p className="text-sm font-bold text-slate-700">{session.startTime ? new Date(session.startTime).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</p>
                               <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
                                 <Clock size={12} className="text-slate-400" />
                                 {timeLabel}
                               </p>
                             </td>
-                            <td className="px-6 py-5">
+                            <td className="px-6 py-5 align-middle whitespace-nowrap">
                               {countdown ? (
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold">
                                   <Clock size={12} />
@@ -426,8 +445,8 @@ const MySessions = ({ initialViewOverride }: { initialViewOverride?: 'overview' 
                                 <StatusBadge status={displayStatus} />
                               )}
                             </td>
-                            <td className="px-6 py-5 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                            <td className="px-6 py-5 text-right align-middle">
+                              <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                                 {displayStatus === 'Completed' ? (
                                   session.candidateReview ? (
                                     <button
@@ -532,10 +551,17 @@ const MySessions = ({ initialViewOverride }: { initialViewOverride?: 'overview' 
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-slate-900 text-sm">Your session with {session.expert}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">{session.category} Simulation</p>
+                            <div className="flex flex-col gap-1 items-start mt-1">
+                              <span className="text-xs text-slate-600 font-semibold truncate">
+                                Interview
+                              </span>
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-[#004fcb] border border-blue-100 uppercase">
+                                {session.category}
+                              </span>
+                            </div>
                             {session.startTime && (
-                              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                                <Clock size={12} />
+                              <p className="text-xs text-slate-500 mt-2 flex items-center gap-1 whitespace-nowrap">
+                                <Clock size={12} className="text-slate-400" />
                                 {new Date(session.startTime).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} · {timeLabel}
                               </p>
                             )}

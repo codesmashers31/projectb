@@ -1,6 +1,7 @@
 import PricingRule from "../models/PricingRule.js";
 import Category from "../models/Category.js";
 import Skill from "../models/Skill.js";
+import PricingHistory from "../models/PricingHistory.js";
 
 /* -------------------- Bulk Upsert Pricing Rules -------------------- */
 export const bulkUpsertPricingRules = async (req, res) => {
@@ -211,6 +212,197 @@ export const updateSkillBasePrice = async (req, res) => {
         });
     } catch (error) {
         console.error("Update Skill Base Price Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+/* -------------------- Admin: Get Full Pricing Matrix -------------------- */
+export const getPricingMatrix = async (req, res) => {
+    try {
+        const categories = await Category.find({ status: "Active" }).lean();
+        const rules = await PricingRule.find({ skillId: null }).lean();
+        res.json({ success: true, categories, rules });
+    } catch (error) {
+        console.error("Get Pricing Matrix Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+/* -------------------- Admin: Bulk Update Pricing Matrix -------------------- */
+export const bulkUpdateMatrix = async (req, res) => {
+    try {
+        const { updates } = req.body;
+        const userId = req.headers.userid || req.user?.id || null;
+
+        if (!updates || !Array.isArray(updates) || updates.length === 0) {
+            return res.status(400).json({ success: false, message: "No updates provided" });
+        }
+
+        for (const item of updates) {
+            const { categoryId, level, price } = item;
+            const newPrice = Number(price);
+
+            const cat = await Category.findById(categoryId);
+            if (!cat) continue;
+
+            const existingRule = await PricingRule.findOne({
+                categoryId,
+                level,
+                duration: 30,
+                skillId: null
+            });
+
+            const oldPrice = existingRule ? existingRule.price : (cat.amount || 0);
+
+            if (oldPrice !== newPrice) {
+                await PricingHistory.create({
+                    categoryId,
+                    categoryName: cat.name,
+                    level,
+                    oldPrice,
+                    newPrice,
+                    updatedBy: userId
+                });
+
+                await PricingRule.findOneAndUpdate(
+                    { categoryId, level, duration: 30, skillId: null },
+                    { price: newPrice, currency: 'INR' },
+                    { upsert: true }
+                );
+
+                await PricingRule.findOneAndUpdate(
+                    { categoryId, level, duration: 60, skillId: null },
+                    { price: Math.round(newPrice * 1.8), currency: 'INR' },
+                    { upsert: true }
+                );
+            }
+        }
+
+        res.json({ success: true, message: "Pricing rules updated successfully" });
+    } catch (error) {
+        console.error("Bulk Update Matrix Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+/* -------------------- Admin: Reset to Defaults -------------------- */
+export const resetPricingDefaults = async (req, res) => {
+    try {
+        const userId = req.headers.userid || req.user?.id || null;
+
+        const defaultMatrix = {
+            "IT": {
+                "Rising Mentor": 499,
+                "Professional Mentor": 999,
+                "Senior Mentor": 1499,
+                "Elite Mentor": 2499,
+                "FAANG Mentor": 3999
+            },
+            "HR": {
+                "Rising Mentor": 399,
+                "Professional Mentor": 799,
+                "Senior Mentor": 1299,
+                "Elite Mentor": 1999,
+                "FAANG Mentor": 2999
+            },
+            "Business": {
+                "Rising Mentor": 499,
+                "Professional Mentor": 999,
+                "Senior Mentor": 1499,
+                "Elite Mentor": 2499,
+                "FAANG Mentor": 3499
+            },
+            "Design": {
+                "Rising Mentor": 499,
+                "Professional Mentor": 899,
+                "Senior Mentor": 1399,
+                "Elite Mentor": 2299,
+                "FAANG Mentor": 3299
+            },
+            "AI": {
+                "Rising Mentor": 999,
+                "Professional Mentor": 1499,
+                "Senior Mentor": 2499,
+                "Elite Mentor": 3499,
+                "FAANG Mentor": 4999
+            }
+        };
+
+        const icons = {
+            "IT": "Code",
+            "HR": "Users",
+            "Business": "Briefcase",
+            "Design": "Palette",
+            "AI": "Cpu"
+        };
+
+        for (const [catName, levelPrices] of Object.entries(defaultMatrix)) {
+            let cat = await Category.findOne({ name: catName });
+            if (!cat) {
+                cat = await Category.create({
+                    name: catName,
+                    description: `${catName} Category`,
+                    type: catName === "HR" ? "behavioral" : "technical",
+                    icon: icons[catName] || "Layers",
+                    status: "Active"
+                });
+            }
+
+            for (const [level, price] of Object.entries(levelPrices)) {
+                const newPrice = Number(price);
+
+                const existingRule = await PricingRule.findOne({
+                    categoryId: cat._id,
+                    level,
+                    duration: 30,
+                    skillId: null
+                });
+
+                const oldPrice = existingRule ? existingRule.price : (cat.amount || 0);
+
+                if (oldPrice !== newPrice) {
+                    await PricingHistory.create({
+                        categoryId: cat._id,
+                        categoryName: cat.name,
+                        level,
+                        oldPrice,
+                        newPrice,
+                        updatedBy: userId
+                    });
+
+                    await PricingRule.findOneAndUpdate(
+                        { categoryId: cat._id, level, duration: 30, skillId: null },
+                        { price: newPrice, currency: 'INR' },
+                        { upsert: true }
+                    );
+
+                    await PricingRule.findOneAndUpdate(
+                        { categoryId: cat._id, level, duration: 60, skillId: null },
+                        { price: Math.round(newPrice * 1.8), currency: 'INR' },
+                        { upsert: true }
+                    );
+                }
+            }
+        }
+
+        res.json({ success: true, message: "Pricing rules reset to system defaults successfully" });
+    } catch (error) {
+        console.error("Reset Pricing Defaults Error:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+/* -------------------- Admin: Get Price Change History -------------------- */
+export const getPricingHistory = async (req, res) => {
+    try {
+        const history = await PricingHistory.find({})
+            .populate("updatedBy", "name email")
+            .sort({ timestamp: -1 })
+            .limit(100)
+            .lean();
+        res.json({ success: true, data: history });
+    } catch (error) {
+        console.error("Get Pricing History Error:", error);
         res.status(500).json({ success: false, message: "Server error" });
     }
 };

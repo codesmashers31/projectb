@@ -247,8 +247,79 @@ const ExpertAvailability = () => {
     }));
   };
 
+  const handleAutoSaveMeetLink = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const rawLink = e.target.value.trim();
+    if (rawLink && !/^https?:\/\/meet\.google\.com\//i.test(rawLink)) {
+      toast.error("Invalid Google Meet link. Use a meet.google.com URL.");
+      return;
+    }
+
+    try {
+      const payload = {
+        defaultMeetingLink: rawLink || null
+      };
+      await axios.put("/api/expert/availability", payload);
+      toast.success("Meet link auto-saved!");
+    } catch (err) {
+      console.error("Auto-save Meet link error:", err);
+      const message = (err as any)?.response?.data?.message || "Failed to auto-save Meet link";
+      toast.error(message);
+    }
+  };
+
+  const handleKeyDownMeetLink = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+    }
+  };
+
   const saveAvailability = async () => {
     try {
+      // Validate slots overlap
+      const dayLabelsMap: Record<string, string> = {
+        monday: "Monday",
+        tuesday: "Tuesday",
+        wednesday: "Wednesday",
+        thursday: "Thursday",
+        friday: "Friday",
+        saturday: "Saturday",
+        sunday: "Sunday"
+      };
+
+      const timeToMinutes = (timeStr: string) => {
+        if (!timeStr) return 0;
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + m;
+      };
+
+      for (const day of Object.keys(profile.availability.weekly)) {
+        const daySlots = profile.availability.weekly[day] || [];
+        const label = dayLabelsMap[day] || day;
+        
+        // First sort slots by start time to make validation/checking super clean
+        const sortedSlots = [...daySlots].sort((a, b) => timeToMinutes(a.from) - timeToMinutes(b.from));
+
+        for (let i = 0; i < sortedSlots.length; i++) {
+          const slot = sortedSlots[i];
+          const start = timeToMinutes(slot.from);
+          const end = timeToMinutes(slot.to);
+
+          if (start >= end) {
+            toast.error(`Invalid slot on ${label}: ${displayTime(slot.from)} - ${displayTime(slot.to)} cannot end before it starts.`);
+            return;
+          }
+
+          if (i > 0) {
+            const prevSlot = sortedSlots[i - 1];
+            const prevEnd = timeToMinutes(prevSlot.to);
+            if (start < prevEnd) {
+              toast.error(`Slot overlap on ${label}: The slot ${displayTime(slot.from)} - ${displayTime(slot.to)} overlaps with ${displayTime(prevSlot.from)} - ${displayTime(prevSlot.to)}.`);
+              return;
+            }
+          }
+        }
+      }
+
       const payload = JSON.parse(JSON.stringify(profile.availability));
       const link = (payload.defaultMeetingLink || '').toString().trim();
       if (payload.defaultMeetingLink !== undefined) payload.defaultMeetingLink = link || null;
@@ -340,6 +411,8 @@ const ExpertAvailability = () => {
                     className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                     value={(profile.availability.defaultMeetingLink || "") as string}
                     onChange={(e) => setProfile(p => ({ ...p, availability: { ...p.availability, defaultMeetingLink: e.target.value } }))}
+                    onBlur={handleAutoSaveMeetLink}
+                    onKeyDown={handleKeyDownMeetLink}
                   />
                   <p className="text-xs text-gray-400 mt-1">
                     Optional. If set, every new session booked by a candidate will automatically show this Meet link.

@@ -176,6 +176,11 @@ export const getSession = async (req, res) => {
             } catch (e) { }
         }
 
+        const isObjectId = (str) => /^[0-9a-fA-F]{24}$/.test(String(str));
+        if (expertName === 'Unknown Expert' || isObjectId(expertName)) {
+            expertName = 'Expert';
+        }
+
         const candidateName = candidate?.name || (typeof session.candidateId === 'string' ? session.candidateId : 'Candidate');
         const candidateImage = candidate?.profileImage || null;
         const candidateEmail = candidate?.email || "";
@@ -290,11 +295,11 @@ export const getSessionsByCandidate = async (req, res) => {
                     } catch (e) { }
                 }
 
-                // ULTIMATE FALLBACK: If we still have "Unknown Expert" but a valid ID string, 
-                // it means we have a session linked to a missing or hidden user. 
-                // We show the ID so the user knows WHO it is (or at least it's not generic).
-                if (expertName === 'Unknown Expert' && lookupId) {
-                    expertName = lookupId;
+                // ULTIMATE FALLBACK: If we still have "Unknown Expert" or a raw ObjectId,
+                // fall back to a user-friendly name "Expert".
+                const isObjectId = (str) => /^[0-9a-fA-F]{24}$/.test(String(str));
+                if (expertName === 'Unknown Expert' || isObjectId(expertName)) {
+                    expertName = 'Expert';
                 }
 
                 // Match Review - Expert's review (marks/feedback for candidate) and Candidate's review

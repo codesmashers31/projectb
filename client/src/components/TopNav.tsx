@@ -13,7 +13,8 @@ import {
   CreditCard,
   Calendar,
   Search,
-  HelpCircle
+  HelpCircle,
+  ChevronDown
 } from "lucide-react";
 import { io } from "socket.io-client";
 
@@ -134,14 +135,15 @@ export default function TopNav({ onOpenSidebar }: { onOpenSidebar?: () => void }
   const avatarSrc = getProfileImageUrl(user?.profileImage || (user as any)?.photoUrl);
 
   return (
-    <header className="h-[80px] w-full bg-white border-b border-gray-100 px-6 flex items-center justify-between sticky top-0 z-40">
+    <header className="h-[68px] w-full bg-white/90 backdrop-blur-xl border-b border-slate-200/70 px-6 flex items-center justify-between sticky top-0 z-40 shadow-[0_2px_18px_-8px_rgba(0,0,0,0.10)]">
       <div className="flex items-center gap-4">
-        <button onClick={onOpenSidebar} className="xl:hidden p-2 text-gray-500 hover:text-blue-600 rounded-lg">
-          <Menu size={24} />
+        <button onClick={onOpenSidebar} className="xl:hidden p-2 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-50 transition-all active:scale-95">
+          <Menu size={20} />
         </button>
       </div>
 
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center space-x-2.5">
+        {/* Notifications */}
         <div className="relative flex items-center" ref={notificationsRef}>
           <button
             onClick={() => {
@@ -149,35 +151,35 @@ export default function TopNav({ onOpenSidebar }: { onOpenSidebar?: () => void }
               setIsProfileOpen(false);
               if (!isNotificationsOpen && user) fetchNotifications();
             }}
-            className="text-[#9ca3af] hover:text-[#3b5cf1] transition-colors relative flex items-center justify-center"
+            className="p-2.5 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-50 transition-all active:scale-95 relative flex items-center justify-center"
             aria-label="Notifications"
           >
-            <Bell size={22} strokeWidth={2} />
+            <Bell size={18} />
             {unreadCount > 0 && (
-               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] rounded-full h-4 w-4 flex items-center justify-center font-bold border-2 border-white">
-                 {unreadCount > 9 ? '9+' : unreadCount}
+               <span className="absolute top-2 right-2 bg-rose-500 text-white text-[8px] rounded-full h-3.5 w-3.5 flex items-center justify-center font-black border-2 border-white">
+                 {unreadCount}
                </span>
             )}
           </button>
           
           {isNotificationsOpen && (
-             <div className="absolute right-0 mt-4 w-80 bg-white border border-gray-100 rounded-xl shadow-xl z-50">
-                <div className="px-4 py-3 border-b border-gray-50 flex justify-between items-center">
-                  <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
+             <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                  <h3 className="font-semibold text-slate-900 text-sm tracking-tight">Notifications</h3>
                   {unreadCount > 0 && (
-                    <button onClick={markAllAsRead} className="text-xs text-blue-600 font-medium">Mark all read</button>
+                    <button onClick={markAllAsRead} className="text-xs text-blue-600 hover:text-blue-700 font-semibold">Mark all read</button>
                   )}
                 </div>
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-80 overflow-y-auto">
                     {loadingNotifications ? (
-                      <div className="p-4 text-center text-sm text-gray-400">Loading...</div>
+                      <div className="p-4 text-center text-sm text-slate-400">Loading...</div>
                     ) : notifications.length === 0 ? (
                       <div className="p-8 text-center text-sm text-gray-400">No new notifications</div>
                     ) : (
                       notifications.map(n => (
-                         <div key={n.id} onClick={() => markAsRead(n.id)} className="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer">
-                            <p className="text-sm font-medium">{n.title}</p>
-                            <p className="text-xs text-gray-500 mt-1">{n.message}</p>
+                         <div key={n.id} onClick={() => markAsRead(n.id)} className="px-4 py-3 border-b border-slate-50 hover:bg-slate-50/80 cursor-pointer transition-colors">
+                            <p className="font-black text-slate-800 text-[11px] tracking-tight">{n.title}</p>
+                            <p className="text-slate-500 text-[10px] mt-1 line-clamp-2 leading-relaxed">{n.message}</p>
                          </div>
                       ))
                     )}
@@ -186,64 +188,76 @@ export default function TopNav({ onOpenSidebar }: { onOpenSidebar?: () => void }
           )}
         </div>
 
-        <button className="text-[#9ca3af] hover:text-[#3b5cf1] transition-colors flex items-center justify-center">
-          <HelpCircle size={22} strokeWidth={2} />
+        <button className="p-2.5 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-50 transition-all active:scale-95 relative flex items-center justify-center">
+          <HelpCircle size={18} />
         </button>
 
         {/* Separator */}
-        <div className="w-px h-8 bg-gray-200 mx-2 self-center"></div>
+        <div className="h-6 w-px bg-slate-200 mx-2 self-center"></div>
 
+        {/* Profile */}
         <div className="relative flex items-center" ref={profileRef}>
           <button
             onClick={() => {
               setIsProfileOpen((s) => !s);
               setIsNotificationsOpen(false);
             }}
-            className="flex items-center space-x-3 text-left"
+            className="flex items-center space-x-2.5 pl-2 pr-1.5 py-1.5 rounded-2xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-200 group"
           >
             <div className="hidden md:flex flex-col items-end">
-              <p className="text-[14px] font-bold text-[#111827] leading-none mb-1">
-                {user?.name || "Mockeefy"}
+              <p className="text-sm font-semibold text-slate-900 leading-none tracking-tight">
+                {user?.name?.split(" ")[0] || "User"}
               </p>
-              <p className="text-[11px] font-medium text-[#64748b] leading-none">
-                {user?.userType === 'expert' ? "Expert Reviewer" : "User"}
+              <p className="text-[11px] text-slate-500 mt-1">
+                {user?.userType === 'expert' ? "Expert" : user?.userType === 'admin' ? "Admin" : "Member"}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-[14px] bg-[#eef2ff] text-[#3b5cf1] flex items-center justify-center overflow-hidden">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden ring-2 ring-transparent group-hover:ring-blue-100/50 transition-all flex items-center justify-center">
                {user?.profileImage || (user as any)?.photoUrl ? (
                   <img src={avatarSrc} alt="profile" className="w-full h-full object-cover" />
                ) : (
-                  <User size={20} strokeWidth={2} />
+                  <User size={16} strokeWidth={2} className="text-slate-400" />
                )}
             </div>
+            <ChevronDown size={14} className={`text-slate-400 transition-transform duration-300 ${isProfileOpen ? "rotate-180" : ""}`} />
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 mt-3 w-56 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden py-1">
-              <div className="px-4 py-3 border-b border-gray-50 flex items-center gap-3">
-                 <div className="w-9 h-9 shrink-0 rounded-lg bg-[#eef2ff] flex justify-center items-center text-[#3b5cf1]">
-                    {user?.profileImage ? <img src={avatarSrc} className="w-full h-full object-cover rounded-lg" /> : <User size={18}/>}
+            <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+              <div className="px-4 py-4 border-b border-slate-100 bg-slate-50/30 flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border border-slate-200 shadow-sm flex justify-center items-center">
+                    {user?.profileImage ? <img src={avatarSrc} className="w-full h-full object-cover" /> : <User size={18} className="text-slate-400" />}
                  </div>
                  <div className="overflow-hidden">
-                   <p className="font-bold text-gray-900 text-[14px] truncate">{user?.name}</p>
-                   <p className="text-[12px] text-gray-500 truncate">{user?.email}</p>
+                   <p className="font-semibold text-slate-900 text-sm truncate tracking-tight">{user?.name}</p>
+                   <p className="text-[10px] text-slate-400 truncate mt-0.5 tracking-tighter">{user?.email}</p>
                  </div>
               </div>
               
-              <div className="py-2">
-                <Link to="/dashboard/profile" onClick={closeAllDropdowns} className="flex items-center px-4 py-2 hover:bg-gray-50 text-[13px] font-medium text-gray-700">
-                  <User size={16} className="mr-3 text-gray-400" /> Profile Settings
-                </Link>
-                <Link to="/dashboard/sessions" onClick={closeAllDropdowns} className="flex items-center px-4 py-2 hover:bg-gray-50 text-[13px] font-medium text-gray-700">
-                  <Calendar size={16} className="mr-3 text-gray-400" /> My Sessions
-                </Link>
-                <Link to="/dashboard/settings" onClick={closeAllDropdowns} className="flex items-center px-4 py-2 hover:bg-gray-50 text-[13px] font-medium text-gray-700">
-                  <Settings size={16} className="mr-3 text-gray-400" /> Settings
-                </Link>
+              <div className="p-1.5 space-y-0.5">
+                {user?.userType === 'admin' ? (
+                  <>
+                    <Link to="/admin" onClick={closeAllDropdowns} className="flex items-center px-3.5 py-2.5 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-sm font-medium transition-all">
+                      <Settings size={16} className="mr-3 text-slate-400" /> Admin Dashboard
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/dashboard" onClick={closeAllDropdowns} className="flex items-center px-3.5 py-2.5 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-sm font-medium transition-all">
+                      <Settings size={16} className="mr-3 text-slate-400" /> Expert Panel
+                    </Link>
+                    <Link to="/dashboard/profile" onClick={closeAllDropdowns} className="flex items-center px-3.5 py-2.5 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-sm font-medium transition-all">
+                      <User size={16} className="mr-3 text-slate-400" /> Profile Settings
+                    </Link>
+                    <Link to="/dashboard/sessions" onClick={closeAllDropdowns} className="flex items-center px-3.5 py-2.5 rounded-xl hover:bg-slate-50 text-slate-600 hover:text-slate-900 text-sm font-medium transition-all">
+                      <Calendar size={16} className="mr-3 text-slate-400" /> My Sessions
+                    </Link>
+                  </>
+                )}
               </div>
 
-              <div className="border-t border-gray-50 py-1">
-                <button onClick={() => { handleSignOut(); closeAllDropdowns(); }} className="flex w-full items-center px-4 py-2 text-red-600 hover:bg-red-50 text-[13px] font-medium">
+              <div className="border-t border-slate-100 mt-1.5 px-1.5 py-1.5">
+                <button onClick={() => { handleSignOut(); closeAllDropdowns(); }} className="flex w-full items-center px-3.5 py-2.5 text-rose-600 hover:bg-rose-50 rounded-xl text-sm font-medium transition-all">
                   <LogOut size={16} className="mr-3" /> Sign Out
                 </button>
               </div>

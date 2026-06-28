@@ -267,20 +267,20 @@ export const uploadVerificationDocs = async (req, res) => {
           name: req.files.aadharFile[0].originalname
         };
       }
-
-      // Handle linkedin URL
-      if (req.body.linkedin) {
-        expert.verification.linkedin = req.body.linkedin;
-      }
-
-      await expert.save({ validateBeforeSave: false });
-
-      return res.json({
-        success: true,
-        message: 'Verification details updated',
-        verification: expert.verification
-      });
     }
+
+    // Handle linkedin URL
+    if (req.body.linkedin) {
+      expert.verification.linkedin = req.body.linkedin;
+    }
+
+    await expert.save({ validateBeforeSave: false });
+
+    return res.json({
+      success: true,
+      message: 'Verification details updated',
+      verification: expert.verification
+    });
   } catch (err) {
     console.error("uploadVerificationDocs error:", err);
     return res.status(500).json({ success: false, message: err.message || "Internal server error" });
@@ -365,6 +365,7 @@ export const getExpertProfile = async (req, res) => {
       totalExperience: expertLean.professionalDetails?.totalExperience ?? "",
       industry: expertLean.professionalDetails?.industry || "",
       level: expertLean.professionalDetails?.level || "Intermediate",
+      levels: expertLean.professionalDetails?.levels || [],
       previous: expertLean.professionalDetails?.previous || [],
       education: expertLean.education || [],
       skillsAndExpertise: expertLean.skillsAndExpertise || { mode: "Online", domains: [], tools: [], languages: [] },
@@ -434,6 +435,7 @@ export const getExpertById = async (req, res) => {
       totalExperience: expert.professionalDetails?.totalExperience ?? "",
       industry: expert.professionalDetails?.industry || "",
       level: expert.professionalDetails?.level || "Intermediate",
+      levels: expert.professionalDetails?.levels || [],
       previous: expert.professionalDetails?.previous || [],
       education: expert.education || [],
       skillsAndExpertise: expert.skillsAndExpertise || { mode: "Online", domains: [], tools: [], languages: [] },
@@ -683,7 +685,8 @@ export const updateProfessional = async (req, res) => {
       company: professionalDetails.company || "",
       totalExperience: Number(professionalDetails.totalExperience) || 0,
       industry: professionalDetails.industry || "",
-      level: professionalDetails.level || "Intermediate", // Added level
+      level: professionalDetails.level || (Array.isArray(professionalDetails.levels) && professionalDetails.levels[0]) || "Rising Mentor",
+      levels: Array.isArray(professionalDetails.levels) ? professionalDetails.levels : [professionalDetails.level || "Rising Mentor"],
       previous: Array.isArray(professionalDetails.previous)
         ? professionalDetails.previous.map(exp => ({
           company: exp.company || "",
@@ -914,6 +917,44 @@ export const updateAvailability = async (req, res) => {
 
     if (!expert.availability) expert.availability = { sessionDuration: 30, maxPerDay: 1, weekly: {}, breakDates: [] };
 
+    // Validate weekly slots overlap
+    if (newAvailability.weekly) {
+      const timeToMinutes = (timeStr) => {
+        if (!timeStr) return 0;
+        const [h, m] = timeStr.split(':').map(Number);
+        return h * 60 + m;
+      };
+
+      for (const day of Object.keys(newAvailability.weekly)) {
+        const daySlots = newAvailability.weekly[day] || [];
+        const sortedSlots = [...daySlots].sort((a, b) => timeToMinutes(a.from) - timeToMinutes(b.from));
+
+        for (let i = 0; i < sortedSlots.length; i++) {
+          const slot = sortedSlots[i];
+          const start = timeToMinutes(slot.from);
+          const end = timeToMinutes(slot.to);
+
+          if (start >= end) {
+            return res.status(400).json({ 
+              success: false, 
+              message: `Invalid slot on ${day}: ${slot.from} - ${slot.to} cannot end before it starts.` 
+            });
+          }
+
+          if (i > 0) {
+            const prevSlot = sortedSlots[i - 1];
+            const prevEnd = timeToMinutes(prevSlot.to);
+            if (start < prevEnd) {
+              return res.status(400).json({ 
+                success: false, 
+                message: `Slot overlap on ${day}: The slot ${slot.from} - ${slot.to} overlaps with ${prevSlot.from} - ${prevSlot.to}.` 
+              });
+            }
+          }
+        }
+      }
+    }
+
     expert.availability.sessionDuration = newAvailability.sessionDuration ?? expert.availability.sessionDuration;
     expert.availability.maxPerDay = newAvailability.maxPerDay ?? expert.availability.maxPerDay;
     if (newAvailability.defaultMeetingLink !== undefined) {
@@ -1029,19 +1070,32 @@ export const getPendingExperts = async (req, res) => {
 
       // Category-based price for display (30 min default)
       let price = 0;
+      let priceDisplay = "—";
       try {
         const catName = expert.personalInformation?.category || "IT";
-        const level = expert.professionalDetails?.level || "Intermediate";
+        const levelsList = expert.professionalDetails?.levels && expert.professionalDetails.levels.length > 0
+          ? expert.professionalDetails.levels
+          : [expert.professionalDetails?.level || "Rising Mentor"];
+
         const catDoc = await Category.findOne({ name: catName });
         if (catDoc) {
-          const rule = await PricingRule.findOne({
-            categoryId: catDoc._id,
-            skillId: null,
-            level,
-            duration: 30,
-          });
-          if (rule) price = rule.price;
-          else if (catDoc.amount != null && catDoc.amount >= 0) price = catDoc.amount;
+          const prices = [];
+          for (const lvl of levelsList) {
+            const rule = await PricingRule.findOne({
+              categoryId: catDoc._id,
+              skillId: null,
+              level: lvl,
+              duration: 30,
+            });
+            if (rule) prices.push(rule.price);
+            else if (catDoc.amount != null && catDoc.amount >= 0) prices.push(catDoc.amount);
+          }
+          if (prices.length > 0) {
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            price = minPrice;
+            priceDisplay = minPrice === maxPrice ? `₹${minPrice}` : `₹${minPrice} - ₹${maxPrice}`;
+          }
         }
       } catch (e) {
         console.error("Pending expert price calc error:", e);
@@ -1052,6 +1106,7 @@ export const getPendingExperts = async (req, res) => {
         userId: expert.userId,
         profileImage: expert.userDetails?.profileImage || expert.profileImage || "",
         price,
+        priceDisplay,
         education: expert.education || [],
         personalInformation: {
           userName: expert.userDetails?.name || "Expert",
@@ -1068,7 +1123,8 @@ export const getPendingExperts = async (req, res) => {
           company: expert.professionalDetails?.company || "",
           totalExperience: expert.professionalDetails?.totalExperience || 0,
           industry: expert.professionalDetails?.industry || "",
-          level: expert.professionalDetails?.level || "Intermediate",
+          level: expert.professionalDetails?.level || "Rising Mentor",
+          levels: expert.professionalDetails?.levels || [expert.professionalDetails?.level || "Rising Mentor"],
           previous: expert.professionalDetails?.previous || []
         },
         skillsAndExpertise: {
@@ -1297,6 +1353,7 @@ export const getVerifiedExperts = async (req, res) => {
           totalExperience: expert.professionalDetails?.totalExperience || 0,
           industry: expert.professionalDetails?.industry || "",
           level: expert.professionalDetails?.level || "Intermediate",
+          levels: expert.professionalDetails?.levels || [],
           previous: expert.professionalDetails?.previous || []
         },
         skillsAndExpertise: {
@@ -1394,9 +1451,19 @@ export const getAllExperts = async (req, res) => {
 export const approveExpert = async (req, res) => {
   try {
     const { id } = req.params;
+    const { category, level } = req.body;
+
+    const updateObj = { status: "Active" };
+    if (category) {
+      updateObj["personalInformation.category"] = category;
+    }
+    if (level) {
+      updateObj["professionalDetails.level"] = level;
+    }
+
     const expert = await ExpertDetails.findByIdAndUpdate(
       id,
-      { status: "Active" },
+      updateObj,
       { new: true }
     );
 
