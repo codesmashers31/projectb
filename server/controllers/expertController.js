@@ -476,6 +476,116 @@ export const getExpertById = async (req, res) => {
   }
 };
 
+/* -------------------- getPublicExpertById (Candidate/Public View) -------------------- */
+export const getPublicExpertById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: "Invalid ID format" });
+    }
+
+    // Usually we look up by Expert _id, not userId, when we have the specific ID
+    let expert = await ExpertDetails.findById(id).lean();
+
+    // If not found, try finding by userId just in case
+    if (!expert) {
+      expert = await ExpertDetails.findOne({ userId: id }).lean();
+    }
+
+    if (!expert) return res.status(404).json({ success: false, message: "Expert not found" });
+
+    // Populate user details (Crucial for Identity)
+    const user = await User.findById(expert.userId).lean();
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Expert identity not found" });
+    }
+
+    // Populate expertSkills.skillId for compatibility with mapExpertToProfile
+    await ExpertDetails.populate(expert, { path: 'expertSkills.skillId', select: 'name' });
+
+    // --- Dynamic Price Calculation ---
+    let price = 0; // Default fallback
+    try {
+      const catName = expert.personalInformation?.category || "IT";
+      const level = expert.professionalDetails?.level || "Intermediate";
+      const catDoc = await Category.findOne({ name: catName });
+      if (catDoc) {
+        const pricingRule = await PricingRule.findOne({
+          categoryId: catDoc._id,
+          skillId: null, // Base category price
+          level: String(level).trim(),
+          duration: 30 // Default 30 min price for profile display
+        });
+        if (pricingRule) price = pricingRule.price;
+        else if (catDoc.amount != null && catDoc.amount >= 0) price = catDoc.amount;
+      }
+    } catch (e) { console.error("Price calc error:", e); }
+
+    const profile = {
+      _id: expert._id,
+      userId: expert.userId,
+      profileImage: user.profileImage || expert.profileImage || "",
+      price: price, // Dynamic Price
+      personalInformation: {
+        userName: user.name || "Expert",
+        mobile: user.personalInfo?.phone || expert.personalInformation?.mobile || "",
+        gender: user.personalInfo?.gender || expert.personalInformation?.gender || "",
+        dob: user.personalInfo?.dateOfBirth || expert.personalInformation?.dob || null,
+        country: user.personalInfo?.country || "",
+        state: user.personalInfo?.state || "",
+        city: user.personalInfo?.city || "",
+        category: expert.personalInformation?.category || "IT",
+        bio: user.personalInfo?.bio || expert.personalInformation?.bio || ""
+      },
+      professionalDetails: {
+        title: expert.professionalDetails?.title || "",
+        company: expert.professionalDetails?.company || "",
+        totalExperience: expert.professionalDetails?.totalExperience || 0,
+        industry: expert.professionalDetails?.industry || "",
+        level: expert.professionalDetails?.level || "Intermediate",
+        levels: expert.professionalDetails?.levels || [],
+        previous: expert.professionalDetails?.previous || []
+      },
+      skillsAndExpertise: {
+        mode: expert.skillsAndExpertise?.mode || "Online",
+        domains: expert.skillsAndExpertise?.domains || [],
+        // Map expertSkills to tools for legacy frontend compatibility
+        tools: (expert.skillsAndExpertise?.tools && expert.skillsAndExpertise.tools.length > 0)
+          ? expert.skillsAndExpertise.tools
+          : (expert.expertSkills ? expert.expertSkills.map(s => s.skillId?.name).filter(Boolean) : []),
+        languages: expert.skillsAndExpertise?.languages || []
+      },
+      expertSkills: expert.expertSkills ? expert.expertSkills.map(s => ({
+        _id: s._id,
+        skillId: s.skillId?._id || s.skillId,
+        skillName: s.skillId?.name || "Unknown Skill",
+        level: s.level,
+        isEnabled: s.isEnabled
+      })) : [],
+      availability: {
+        sessionDuration: expert.availability?.sessionDuration || 30,
+        allowedDurations: (expert.availability?.allowedDurations?.length ? expert.availability.allowedDurations : null) || [expert.availability?.sessionDuration || 30],
+        maxPerDay: expert.availability?.maxPerDay || 1,
+        weekly: expert.availability?.weekly || {},
+        breakDates: expert.availability?.breakDates || []
+      },
+      verification: expert.verification || {},
+      userDetails: {
+        email: user.email || "",
+        _id: user._id
+      },
+      education: expert.education || [],
+      status: expert.status || "pending",
+    };
+
+    return res.json({ success: true, profile });
+  } catch (err) {
+    console.error("getPublicExpertById error:", err);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 /* -------------------- getPersonalInfo (uses resolver) -------------------- */
 export const getPersonalInfo = async (req, res) => {
   try {
@@ -996,14 +1106,12 @@ export const deleteBreakDate = async (req, res) => {
     const expert = await ExpertDetails.findOne({ userId: queryUserId });
     if (!expert) return res.status(404).json({ success: false, message: "Expert not found" });
 
-    // Normalize and compare ISO strings to be robust for Date/string variants
-    const targetIso = new Date(start).toISOString();
+    const targetTime = new Date(start).getTime();
     expert.availability = expert.availability || { breakDates: [], weekly: {} };
     expert.availability.breakDates = (expert.availability.breakDates || []).filter(d => {
       try {
-        return new Date(d.start).toISOString() !== targetIso;
+        return new Date(d.start).getTime() !== targetTime;
       } catch (e) {
-        // if parsing fails, keep the entry
         return true;
       }
     });
@@ -1028,20 +1136,25 @@ export const deleteWeeklySlot = async (req, res) => {
     if (!expert) return res.status(404).json({ success: false, message: "Expert not found" });
 
     expert.availability = expert.availability || { weekly: {} };
-    const weekly = expert.availability.weekly || {};
-    const slots = Array.isArray(weekly[day]) ? weekly[day] : [];
-    weekly[day] = slots.filter(slot => slot.from !== from);
-    expert.availability.weekly = weekly;
+    const weekly = expert.availability.weekly;
+    if (weekly && typeof weekly.get === 'function') {
+      const slots = weekly.get(day) || [];
+      const updatedSlots = slots.filter(slot => slot.from !== from);
+      weekly.set(day, updatedSlots);
+    } else if (weekly) {
+      const slots = Array.isArray(weekly[day]) ? weekly[day] : [];
+      weekly[day] = slots.filter(slot => slot.from !== from);
+    }
 
     await expert.save();
-    return res.status(200).json({ success: true, message: "Slot removed", data: expert.availability.weekly[day] });
+    const resultSlots = weekly && typeof weekly.get === 'function' ? weekly.get(day) : (weekly ? weekly[day] : []);
+    return res.status(200).json({ success: true, message: "Slot removed", data: resultSlots });
   } catch (err) {
     console.error("deleteWeeklySlot error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-/* -------------------- getPendingExperts (Pending verification) -------------------- */
 /* -------------------- getPendingExperts (Pending verification) -------------------- */
 export const getPendingExperts = async (req, res) => {
   try {

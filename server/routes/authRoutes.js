@@ -11,9 +11,9 @@ const authLimiter = rateLimit({
 });
 const router = express.Router();
 
-router.post('/send-otp', sendOtp);
-router.post('/verify-otp', verifyOtp);
-router.post('/reset-password', resetPassword);
+router.post('/send-otp', authLimiter, sendOtp);
+router.post('/verify-otp', authLimiter, verifyOtp);
+router.post('/reset-password', authLimiter, resetPassword);
 router.post('/google-signup', authLimiter, verifyGoogleToken);
 router.post('/register', authLimiter, registerUser);
 router.post('/login', authLimiter, loginUser);

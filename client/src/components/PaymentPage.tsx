@@ -72,6 +72,22 @@ const PaymentPage: React.FC = () => {
     });
   };
 
+  const getKolkataDateString = (d: Date | string) => {
+    const dateObj = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(dateObj.getTime())) return '';
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(dateObj);
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    const year = parts.find(p => p.type === 'year')?.value;
+    return `${year}-${month}-${day}`;
+  };
+
   const handlePaymentSuccess = async (response: any) => {
     try {
       setIsProcessing(true);
@@ -80,17 +96,20 @@ const PaymentPage: React.FC = () => {
       let endTimeISO = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
       if (bookingDetails?.date && bookingDetails?.slot?.time) {
-        const dateObj = new Date(bookingDetails.date);
+        const kolkataDateStr = getKolkataDateString(bookingDetails.date);
         const timeParts = bookingDetails.slot.time.split(/\s*[-–]\s*/);
         const startStr = timeParts[0];
         const [time, period] = startStr.split(" ");
         let [hours, minutes] = time.split(":").map(Number);
         if (period === "PM" && hours !== 12) hours += 12;
         if (period === "AM" && hours === 12) hours = 0;
-        dateObj.setHours(hours, minutes, 0, 0);
-        startTimeISO = dateObj.toISOString();
+        const hh = hours.toString().padStart(2, '0');
+        const mm = minutes.toString().padStart(2, '0');
+        
+        const startKolkata = new Date(`${kolkataDateStr}T${hh}:${mm}:00+05:30`);
+        startTimeISO = startKolkata.toISOString();
         const duration = bookingDetails.duration || 60;
-        endTimeISO = new Date(dateObj.getTime() + duration * 60000).toISOString();
+        endTimeISO = new Date(startKolkata.getTime() + duration * 60000).toISOString();
       }
 
       const verifyResponse = await axios.post('/api/payment/verify-payment', {
@@ -199,17 +218,20 @@ const PaymentPage: React.FC = () => {
     let startTimeISO = new Date().toISOString();
     let endTimeISO = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     if (bookingDetails?.date && bookingDetails?.slot?.time) {
-      const dateObj = new Date(bookingDetails.date);
+      const kolkataDateStr = getKolkataDateString(bookingDetails.date);
       const timeParts = bookingDetails.slot.time.split(/\s*[-–]\s*/);
       const startStr = timeParts[0];
       const [time, period] = startStr.split(" ");
       let [hours, minutes] = time.split(":").map(Number);
       if (period === "PM" && hours !== 12) hours += 12;
       if (period === "AM" && hours === 12) hours = 0;
-      dateObj.setHours(hours, minutes, 0, 0);
-      startTimeISO = dateObj.toISOString();
+      const hh = hours.toString().padStart(2, '0');
+      const mm = minutes.toString().padStart(2, '0');
+      
+      const startKolkata = new Date(`${kolkataDateStr}T${hh}:${mm}:00+05:30`);
+      startTimeISO = startKolkata.toISOString();
       const duration = bookingDetails.duration || 60;
-      endTimeISO = new Date(dateObj.getTime() + duration * 60000).toISOString();
+      endTimeISO = new Date(startKolkata.getTime() + duration * 60000).toISOString();
     }
     return {
       expertId: bookingDetails?.expertId,

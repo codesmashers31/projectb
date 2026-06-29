@@ -22,6 +22,7 @@ import {
   getVerifiedExperts,
   getPendingExperts,
   getExpertById,
+  getPublicExpertById,
   getRejectedExperts,
   approveExpert,
   rejectExpert,
@@ -33,7 +34,7 @@ import {
 
 import { authenticateToken } from "../controllers/authController.js";
 import { uploadProfile, uploadVerification } from "../middleware/upload.js";
-
+import { admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -45,6 +46,7 @@ router.get("/verified", getVerifiedExperts);
 router.get("/rejected", getRejectedExperts);
 router.put("/approve/:id", approveExpert);
 router.put("/reject/:id", rejectExpert);
+router.get("/public/profile/:id", getPublicExpertById); // New Public Profile getter (PII stripped)
 
 // Protect all expert routes
 router.use(authenticateToken);
@@ -52,7 +54,7 @@ router.use(authenticateToken);
 // Profile
 router.get("/profile", getExpertProfile);
 router.get("/stats", getExpertStats);
-router.get("/admin/profile/:id", getExpertById);
+router.get("/admin/profile/:id", admin, getExpertById); // Restricted to Admin role only
 router.post("/profile/photo", uploadProfile.single("photo"), uploadProfilePhoto);
 router.get("/profile/image", getExpertProfileImage);
 

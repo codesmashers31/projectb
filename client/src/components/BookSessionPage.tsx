@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import axios from '../lib/axios';
 import { useAuth } from "../context/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import {
   Star, MapPin, Clock, Users, Award,
   Calendar, CheckCircle, Shield, Video,
@@ -159,24 +160,64 @@ const BookSessionPage = () => {
   const queryExpertId = searchParams.get("expertId");
 
   const expertId = stateExpertId || existingProfile?.id || queryExpertId;
-  const [profile, setProfile] = useState<Profile | null>(existingProfile || null);
-  const hasInitialProfile = Boolean(existingProfile);
+
+  // React Query: Fetch specific expert profile by ID (cached, public endpoint)
+  const { data: profile, isLoading: isQueryLoading, error: queryError } = useQuery<Profile | null>({
+    queryKey: ["expertProfile", expertId],
+    queryFn: async () => {
+      if (!expertId) return null;
+      const response = await axios.get(`/api/expert/public/profile/${expertId}`);
+      if (response.data?.success && response.data?.profile) {
+        return mapExpertToProfile(response.data.profile);
+      }
+      throw new Error("Expert profile not found");
+    },
+    initialData: existingProfile || undefined,
+    enabled: !!expertId,
+    staleTime: 0,
+    refetchOnMount: "always",
+  });
+
+  const loading = isQueryLoading && !profile;
 
   const sessionPrice = overridePrice ? overridePrice : (profile?.price || 0);
-  // Skill (for pricing): expert's skills only; duration 30 or 60; level from expert
-  const skillOptions = profile?.skills?.length ? profile.skills : (profile?.category ? [profile.category] : ["General"]);
-  const [selectedSkill, setSelectedSkill] = useState<string>(skillOptions[0] || "General");
-  const [expertLevel, setExpertLevel] = useState(existingProfile?.levels?.[0] || existingProfile?.level || "Rising Mentor");
-  // Only show durations the expert offers (30 and/or 60)
+
+  // Computed allowed durations options
   const durationOptions = useMemo<SessionDuration[]>(() => {
-    const allowed = profile?.availability?.allowedDurations;
+    const prof = profile || existingProfile;
+    const allowed = prof?.availability?.allowedDurations;
     if (Array.isArray(allowed) && allowed.length > 0) return allowed.filter(isSessionDuration);
-    const single = profile?.availability?.sessionDuration;
+    const single = prof?.availability?.sessionDuration;
     if (isSessionDuration(single)) return [single];
     return [30];
-  }, [profile?.availability?.allowedDurations, profile?.availability?.sessionDuration]);
-  const [sessionDuration, setSessionDuration] = useState<SessionDuration>(durationOptions[0] ?? 30);
+  }, [profile?.availability?.allowedDurations, profile?.availability?.sessionDuration, existingProfile]);
+
+  // Initial duration based on state profile or first load to avoid jumps
+  const initialDuration = useMemo<SessionDuration>(() => {
+    const prof = existingProfile || profile;
+    const allowed = prof?.availability?.allowedDurations;
+    if (Array.isArray(allowed) && allowed.length > 0) {
+      const valid = allowed.filter(isSessionDuration);
+      if (valid.length > 0) return valid[0];
+    }
+    const single = prof?.availability?.sessionDuration;
+    if (isSessionDuration(single)) return single;
+    return 30;
+  }, [existingProfile, profile]);
+
+  const [sessionDuration, setSessionDuration] = useState<SessionDuration>(initialDuration);
+
+  // Skill (for pricing): expert's skills only
+  const skillOptions = useMemo(() => {
+    const prof = profile || existingProfile;
+    return prof?.skills?.length ? prof.skills : (prof?.category ? [prof.category] : ["General"]);
+  }, [profile?.skills, profile?.category, existingProfile]);
+
+  const [selectedSkill, setSelectedSkill] = useState<string>(() => skillOptions[0] || "General");
+  const [expertLevel, setExpertLevel] = useState(() => existingProfile?.levels?.[0] || existingProfile?.level || "Rising Mentor");
+
   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
+
   const skillSelectOptions = useMemo<PremiumSelectOption[]>(
     () => skillOptions.map((skill) => ({ value: skill, label: skill })),
     [skillOptions]
@@ -188,6 +229,22 @@ const BookSessionPage = () => {
         label: `${duration} Minutes`,
       })),
     [durationOptions]
+  );
+
+  const levelOptions = useMemo(() => {
+    const prof = profile || existingProfile;
+    return prof?.levels && prof.levels.length > 0
+      ? prof.levels
+      : [prof?.level || "Rising Mentor"];
+  }, [profile?.levels, profile?.level, existingProfile]);
+
+  const levelSelectOptions = useMemo<PremiumSelectOption[]>(
+    () =>
+      (levelOptions || []).map((lvl) => ({
+        value: lvl,
+        label: lvl,
+      })),
+    [levelOptions]
   );
 
   // Professional category-aware banner images
@@ -234,52 +291,39 @@ const BookSessionPage = () => {
     return banners[charSum % banners.length];
   }, [expertId, profile?.category]);
 
+  // Synchronize expert Level selection when profile options change
   useEffect(() => {
-    if (profile?.levels && profile.levels.length > 0) {
-      setExpertLevel(profile.levels[0]);
-    } else if (profile?.level) {
-      setExpertLevel(profile.level);
+    if (levelOptions.length > 0 && !levelOptions.includes(expertLevel)) {
+      setExpertLevel(levelOptions[0]);
     }
-    const opts = profile?.skills?.length ? profile.skills : (profile?.category ? [profile.category] : ["General"]);
-    if (opts.length && !opts.includes(selectedSkill)) setSelectedSkill(opts[0]);
-    const dur = profile?.availability?.allowedDurations?.length ? profile.availability.allowedDurations : (profile?.availability?.sessionDuration ? [profile.availability.sessionDuration] : [30]);
-    const validDur = dur.filter(isSessionDuration);
-    if (validDur.length && !validDur.includes(sessionDuration)) setSessionDuration(validDur[0]);
-  }, [profile]);
-  const [loading, setLoading] = useState(!existingProfile);
+  }, [levelOptions, expertLevel]);
+
+  // Synchronize Skill selection when profile options change
+  useEffect(() => {
+    if (skillOptions.length > 0 && !skillOptions.includes(selectedSkill)) {
+      setSelectedSkill(skillOptions[0]);
+    }
+  }, [skillOptions, selectedSkill]);
+
+  // Synchronize Session Duration when profile options change
+  useEffect(() => {
+    const prof = profile || existingProfile;
+    if (prof) {
+      const allowed = prof.availability?.allowedDurations;
+      const valid = Array.isArray(allowed) ? allowed.filter(isSessionDuration) : [];
+      const defaultDur = valid.length > 0 ? valid[0] : (isSessionDuration(prof.availability?.sessionDuration) ? prof.availability.sessionDuration : 30);
+      if (!durationOptions.includes(sessionDuration)) {
+        setSessionDuration(defaultDur);
+      }
+    }
+  }, [profile, existingProfile, durationOptions, sessionDuration]);
   const [errorValue, setErrorValue] = useState<string | null>(null);
 
   useEffect(() => {
-    // Always fetch fresh profile data to ensure availability is up-to-date
-    if (expertId) {
-      const fetchProfile = async () => {
-        try {
-          // Avoid UI flicker: only show full-page skeleton when we don't already have a profile to render.
-          if (!hasInitialProfile) setLoading(true);
-          const response = await axios.get("/api/expert/verified");
-          if (response.data?.success && response.data?.data) {
-            const foundExpert = response.data.data.find((e: any) =>
-              e._id === expertId || e.userId === expertId
-            );
-
-            if (foundExpert) {
-              setProfile(mapExpertToProfile(foundExpert));
-            } else {
-              setErrorValue("Expert not found");
-            }
-          } else {
-            setErrorValue("Failed to load expert data");
-          }
-        } catch (err) {
-          console.error(err);
-          setErrorValue("Error connecting to server");
-        } finally {
-          if (!hasInitialProfile) setLoading(false);
-        }
-      };
-      fetchProfile();
+    if (queryError) {
+      setErrorValue((queryError as any)?.message || "Failed to load expert data");
     }
-  }, [expertId, hasInitialProfile]);
+  }, [queryError]);
 
   // Price is category-based only (expert's category + level + duration). No skill.
   useEffect(() => {
@@ -306,7 +350,60 @@ const BookSessionPage = () => {
   }, [profile?.id, sessionDuration, expertLevel]);
 
 
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const getKolkataTimeParts = (d: Date = new Date()) => {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(d);
+    const getPart = (type: string) => parseInt(parts.find(p => p.type === type)?.value || '0', 10);
+    return {
+      year: getPart('year'),
+      month: getPart('month') - 1, // 0-indexed
+      day: getPart('day'),
+      hours: getPart('hour'),
+      minutes: getPart('minute'),
+      seconds: getPart('second')
+    };
+  };
+
+  const getKolkataDateString = (d: Date | string) => {
+    const dateObj = typeof d === 'string' ? new Date(d) : d;
+    if (isNaN(dateObj.getTime())) return '';
+    
+    // Explicitly format in India timezone (Kolkata)
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    
+    const parts = formatter.formatToParts(dateObj);
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    const year = parts.find(p => p.type === 'year')?.value;
+    
+    return `${year}-${month}-${day}`;
+  };
+
+  const getKolkataToday = () => {
+    const parts = getKolkataTimeParts();
+    return new Date(parts.year, parts.month, parts.day);
+  };
+
+  const getInitialKolkataMonth = () => {
+    const parts = getKolkataTimeParts();
+    return new Date(parts.year, parts.month, 1);
+  };
+
+  const [currentMonth, setCurrentMonth] = useState<Date>(getInitialKolkataMonth);
   const [selectedDate, setSelectedDate] = useState(0); // Default to first available date (Today)
   // Better: selectedDate as index is tricky with switching months. 
   // Let's keep selectedDate as index of 'dates' array but reset it on month change.
@@ -320,12 +417,17 @@ const BookSessionPage = () => {
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
 
-  // Scroll active date into view on mount or when navigation drawer opens
+  // Scroll active date into view horizontally on mount or when navigation drawer opens (without scrolling the window vertically)
   useEffect(() => {
     if (carouselRef.current) {
-      const activeBtn = carouselRef.current.querySelector('[data-active="true"]');
+      const activeBtn = carouselRef.current.querySelector('[data-active="true"]') as HTMLElement;
       if (activeBtn) {
-        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const container = carouselRef.current;
+        const leftPos = activeBtn.offsetLeft - (container.clientWidth / 2) + (activeBtn.clientWidth / 2);
+        container.scrollTo({
+          left: leftPos,
+          behavior: 'smooth'
+        });
       }
     }
   }, [selectedDate, showMobileBooking]);
@@ -453,22 +555,48 @@ const BookSessionPage = () => {
   }, [expertId]);
 
   const dates = useMemo(() => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+    const parts = getKolkataTimeParts(currentMonth);
+    const year = parts.year;
+    const month = parts.month;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const allDates = Array.from({ length: daysInMonth }, (_, i) => new Date(year, month, i + 1));
 
-    // Filter out past dates for the current month
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Filter out past dates for the current month (Kolkata time)
+    const today = getKolkataToday();
+    const weekly = profile?.availability?.weekly || {};
+
+    // Find all days of the week (e.g., 'friday', 'mon') that have at least one slot configured
+    const activeDays = Object.keys(weekly).filter(day => {
+      const slots = weekly[day];
+      return Array.isArray(slots) && slots.length > 0;
+    }).map(d => d.toLowerCase());
 
     return allDates.filter(date => {
-      // If it's a future month, show all days
-      if (date.getMonth() > today.getMonth() || date.getFullYear() > today.getFullYear()) return true;
-      // If it's current month, show only today onwards
-      return date >= today;
+      // Compare calendar dates safely using Kolkata year/month
+      if (date.getMonth() > today.getMonth() || date.getFullYear() > today.getFullYear()) {
+        if (activeDays.length > 0) {
+          const dayShort = date.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' }).toLowerCase();
+          const dayLong = date.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' }).toLowerCase();
+          if (!activeDays.includes(dayShort) && !activeDays.includes(dayLong)) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      if (date >= today) {
+        if (activeDays.length > 0) {
+          const dayShort = date.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' }).toLowerCase();
+          const dayLong = date.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' }).toLowerCase();
+          if (!activeDays.includes(dayShort) && !activeDays.includes(dayLong)) {
+            return false;
+          }
+        }
+        return true;
+      }
+      return false;
     });
-  }, [currentMonth]);
+  }, [currentMonth, profile?.availability?.weekly]);
 
   const nextMonth = () => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
@@ -477,11 +605,11 @@ const BookSessionPage = () => {
   };
 
   const prevMonth = () => {
-    const now = new Date();
+    const todayKolkata = getKolkataToday();
     const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-    // Allow going back only if it's same month or future
-    if (prev.getMonth() < now.getMonth() && prev.getFullYear() <= now.getFullYear()) {
-      setCurrentMonth(new Date()); // Reset to today
+    // Allow going back only if it's same month or future in Kolkata
+    if (prev.getMonth() < todayKolkata.getMonth() && prev.getFullYear() <= todayKolkata.getFullYear()) {
+      setCurrentMonth(getInitialKolkataMonth()); // Reset to today's month in Kolkata
     } else {
       setCurrentMonth(prev);
     }
@@ -496,17 +624,18 @@ const BookSessionPage = () => {
     const date = dates[dateIndex];
     if (!date) return [];
 
-    const isBreakDate = profile.availability.breakDates?.some((breakDate: any) => {
-      const bd = new Date(breakDate.start);
-      return bd.toDateString() === date.toDateString();
+    const kolkataDateStr = getKolkataDateString(date); // "YYYY-MM-DD"
+
+    const isBreakDate = (profile.availability.breakDates || []).some((breakDate: any) => {
+      return getKolkataDateString(breakDate.start) === kolkataDateStr;
     });
 
     if (isBreakDate) return [];
 
-    // Robust Day Matching (mon, Mon, Monday, etc.)
+    // Robust Day Matching (mon, Mon, Monday, etc.) in Asia/Kolkata timezone
     const weekly = profile.availability.weekly || {};
-    const dayShort = date.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase(); // mon
-    const dayLong = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();   // monday
+    const dayShort = date.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'short' }).toLowerCase(); // mon
+    const dayLong = date.toLocaleDateString('en-US', { timeZone: 'Asia/Kolkata', weekday: 'long' }).toLowerCase();   // monday
 
     const availableKey = Object.keys(weekly).find(key => {
       const k = key.toLowerCase();
@@ -534,11 +663,17 @@ const BookSessionPage = () => {
       return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
     };
 
+    const formatMinutesToHHMM = (totalMinutes: number) => {
+      const adjusted = totalMinutes % (24 * 60);
+      const hours = Math.floor(adjusted / 60);
+      const minutes = adjusted % 60;
+      return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    };
 
     const generatedSlots: { time: string; available: boolean }[] = [];
     const duration = Number(sessionDuration);
-    // Step by 15 min so we get 10:00–10:30, 10:15–10:45, 10:30–11:00 etc. Only past or actually booked slots are unavailable.
-    const SLOT_STEP_MINUTES = 15;
+    // Step by sessionDuration so we get clean, non-overlapping slots (e.g. 09:00 - 10:00, 10:00 - 11:00)
+    const SLOT_STEP_MINUTES = duration;
 
     weeklyRanges.forEach((range: { from: string; to: string }) => {
       if (!range.from || !range.to) return;
@@ -551,36 +686,37 @@ const BookSessionPage = () => {
       }
 
       while (currentMinutes + duration <= endMinutes) {
-        const now = new Date();
-        const isToday = date.toDateString() === now.toDateString();
-        const currentTimeMinutes = now.getHours() * 60 + now.getMinutes();
+        const nowKolkata = getKolkataTimeParts();
+        const todayKolkataStr = getKolkataDateString(new Date());
+        const isToday = kolkataDateStr === todayKolkataStr;
+        const currentTimeMinutes = nowKolkata.hours * 60 + nowKolkata.minutes;
 
-        // Only hide slots whose start time has already passed (today)
+        // Only hide slots whose start time has already passed (today in Kolkata)
         if (isToday && currentMinutes < currentTimeMinutes) {
           currentMinutes += SLOT_STEP_MINUTES;
           continue;
         }
 
-        const slotStartMinutes = currentMinutes;
-        const slotDate = new Date(date);
-        slotDate.setHours(Math.floor(slotStartMinutes / 60), slotStartMinutes % 60, 0, 0);
-        const slotEndMinutes = currentMinutes + duration;
-        const slotEndDate = new Date(date);
-        slotEndDate.setHours(Math.floor(slotEndMinutes / 60), slotEndMinutes % 60, 0, 0);
+        const slotStartStr = formatMinutesToHHMM(currentMinutes);
+        const slotEndStr = formatMinutesToHHMM(currentMinutes + duration);
 
-        // Only mark booked if a confirmed session overlaps this exact slot on the same day
+        // Build exact slot boundary Dates using Asia/Kolkata offset (+05:30)
+        const slotDate = new Date(`${kolkataDateStr}T${slotStartStr}:00+05:30`);
+        const slotEndDate = new Date(`${kolkataDateStr}T${slotEndStr}:00+05:30`);
+
+        // Only mark booked if a confirmed session overlaps this exact slot
         const isBooked = bookedSessions.some(session => {
           if (session.status === 'cancelled') return false;
           const sStart = new Date(session.startTime);
           const sEnd = new Date(session.endTime);
           if (isNaN(sStart.getTime()) || isNaN(sEnd.getTime())) return false;
-          // Same calendar day only
-          if (sStart.toDateString() !== date.toDateString()) return false;
+          // Same calendar day only (India timezone)
+          if (getKolkataDateString(sStart) !== kolkataDateStr) return false;
           return slotDate < sEnd && slotEndDate > sStart;
         });
 
         const slotStart = formatMinutesToTime(currentMinutes);
-        const slotEnd = formatMinutesToTime(slotEndMinutes);
+        const slotEnd = formatMinutesToTime(currentMinutes + duration);
         const timeStr = `${slotStart} - ${slotEnd}`;
         const available = !isBooked;
 
@@ -650,21 +786,29 @@ const BookSessionPage = () => {
     const dateStr = dates[selectedDate];
     const slot = selectedSlot;
     if (!dateStr || !slot?.time) return null;
-    const dateObj = new Date(dateStr);
+
+    const kolkataDateStr = getKolkataDateString(dateStr); // e.g. "2026-06-30"
     const timeParts = slot.time.split(/\s*[-–]\s*/);
-    const startStr = timeParts[0];
+    const startStr = timeParts[0]; // e.g. "09:00 AM"
+    
+    // Parse time and period
     const [time, period] = startStr.split(" ");
     let [hours, minutes] = time.split(":").map(Number);
     if (period === "PM" && hours !== 12) hours += 12;
     if (period === "AM" && hours === 12) hours = 0;
-    dateObj.setHours(hours, minutes, 0, 0);
-    const startTimeISO = dateObj.toISOString();
-    const endTimeISO = new Date(dateObj.getTime() + (sessionDuration || 60) * 60000).toISOString();
+
+    const hh = hours.toString().padStart(2, '0');
+    const mm = minutes.toString().padStart(2, '0');
+
+    // Create correct Date objects using India timezone offset (+05:30)
+    const startKolkata = new Date(`${kolkataDateStr}T${hh}:${mm}:00+05:30`);
+    const endKolkata = new Date(startKolkata.getTime() + (sessionDuration || 60) * 60000);
+
     return {
       expertId,
       candidateId: user?.id || user?.userId || (user as any)?._id,
-      startTime: startTimeISO,
-      endTime: endTimeISO,
+      startTime: startKolkata.toISOString(),
+      endTime: endKolkata.toISOString(),
       topics: [selectedSkill],
       duration: sessionDuration,
       skill: selectedSkill,
@@ -893,23 +1037,11 @@ const BookSessionPage = () => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider block mb-2">Expert Level</label>
-            {profile?.levels && profile.levels.length > 1 ? (
-              <select
-                value={expertLevel}
-                onChange={(e) => setExpertLevel(e.target.value)}
-                className="w-full text-sm font-semibold text-gray-700 bg-white border border-slate-200 px-3 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-300 cursor-pointer font-semibold text-gray-800"
-              >
-                {profile.levels.map((lvl) => (
-                  <option key={lvl} value={lvl}>
-                    {lvl}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="w-full text-sm font-semibold text-gray-700 bg-slate-50 border border-slate-200 px-3 py-2.5 rounded-xl">
-                {expertLevel}
-              </div>
-            )}
+            <PremiumSelect
+              value={expertLevel}
+              options={levelSelectOptions}
+              onChange={(value) => setExpertLevel(value)}
+            />
             <p className="text-xs text-gray-500 mt-1.5">
               {profile?.levels && profile.levels.length > 1 ? "Choose your session level tier" : "Set by expert"}
             </p>
@@ -1068,7 +1200,7 @@ const BookSessionPage = () => {
           </span>
         </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:gap-3 max-h-[320px] sm:max-h-[380px] lg:max-h-[400px] overflow-y-auto overflow-x-hidden pt-1 pb-3">
+      <div className="grid grid-cols-1 gap-2 sm:gap-3 min-h-[160px] max-h-[320px] sm:max-h-[380px] lg:max-h-[400px] overflow-y-auto overflow-x-hidden pt-1 pb-3">
         {currentSlots.length > 0 ? (
           currentSlots.map((slot, index) => {
             const isSelected = selectedSlot?.time === slot.time;
@@ -1148,7 +1280,7 @@ const BookSessionPage = () => {
               </button>
             </div>
             <p className="text-sm font-bold text-gray-900 leading-tight">
-              {dates[selectedDate].toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              {dates[selectedDate]?.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) || ""}
             </p>
             <p className="text-[#004fcb] font-bold text-sm mt-1">
               At {selectedSlot.time}
@@ -1319,12 +1451,33 @@ const BookSessionPage = () => {
                     <div className="space-y-7 animate-fadeIn">
                       {/* Session Quick Stats */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="flex items-center gap-4 p-4 bg-gradient-to-b from-gray-50 to-white rounded-2xl border border-gray-200">
+                        <div
+                          onClick={() => {
+                            if (durationOptions.length > 1) {
+                              const currentIndex = durationOptions.indexOf(sessionDuration);
+                              const nextIndex = (currentIndex + 1) % durationOptions.length;
+                              setSessionDuration(durationOptions[nextIndex]);
+                              setSelectedSlot(null);
+                            }
+                          }}
+                          className={`flex items-center gap-4 p-4 bg-gradient-to-b from-gray-50 to-white rounded-2xl border border-gray-200 select-none ${
+                            durationOptions.length > 1 
+                              ? "cursor-pointer hover:border-[#004fcb] hover:bg-blue-50/20 active:scale-[0.98] transition-all"
+                              : ""
+                          }`}
+                        >
                           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm text-[#004fcb] border border-gray-100">
                             <Timer className="w-6 h-6" />
                           </div>
                           <div>
-                            <div className="font-extrabold text-gray-900 tabular-nums">{sessionDuration}m</div>
+                            <div className="font-extrabold text-gray-900 tabular-nums flex items-center gap-1.5">
+                              {sessionDuration}m
+                              {durationOptions.length > 1 && (
+                                <span className="text-[9px] font-bold text-[#004fcb] bg-blue-50 border border-blue-200/50 px-1.5 py-0.5 rounded-lg">
+                                  Click to change
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-gray-500 font-semibold">Session duration</div>
                           </div>
                         </div>

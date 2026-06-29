@@ -3,6 +3,20 @@ import axios from '../lib/axios';
 import { toast } from "sonner";
 import { PrimaryButton } from '../pages/ExpertDashboard';
 import { X, Copy, Plus, Clock, Calendar as CalendarIcon, CheckCircle2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+
+const formatKolkataDateString = (dateStr: string) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-US', {
+    timeZone: 'Asia/Kolkata',
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
 
 interface Slot {
   from: string;
@@ -101,6 +115,7 @@ const TimeSelect = ({ value, onChange }: { value: string, onChange: (val: string
 
 
 const ExpertAvailability = () => {
+  const queryClient = useQueryClient();
   const [profile, setProfile] = useState<ProfileState>({
     availability: {
       sessionDuration: 30,
@@ -152,12 +167,11 @@ const ExpertAvailability = () => {
   function calculateEndTime(startTime: string, duration: number) {
     if (!startTime) return "";
     const [hours, minutes] = startTime.split(':').map(Number);
-    const startDate = new Date();
-    startDate.setHours(hours, minutes, 0, 0);
-    const endDate = new Date(startDate.getTime() + duration * 60000);
-    const endHours = endDate.getHours().toString().padStart(2, '0');
-    const endMinutes = endDate.getMinutes().toString().padStart(2, '0');
-    return `${endHours}:${endMinutes}`;
+    const totalStartMinutes = hours * 60 + minutes;
+    const totalEndMinutes = totalStartMinutes + duration;
+    const endHours = Math.floor(totalEndMinutes / 60) % 24;
+    const endMinutes = totalEndMinutes % 60;
+    return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`;
   }
 
   const addSlotForDay = (day: string) => {
@@ -259,6 +273,7 @@ const ExpertAvailability = () => {
         defaultMeetingLink: rawLink || null
       };
       await axios.put("/api/expert/availability", payload);
+      await queryClient.invalidateQueries({ queryKey: ["expertProfile"] });
       toast.success("Meet link auto-saved!");
     } catch (err) {
       console.error("Auto-save Meet link error:", err);
@@ -328,6 +343,7 @@ const ExpertAvailability = () => {
         return;
       }
       await axios.put("/api/expert/availability", payload);
+      await queryClient.invalidateQueries({ queryKey: ["expertProfile"] });
       toast.success("Availability saved successfully!");
     } catch (err) {
       console.error("Save error:", err);
@@ -475,7 +491,7 @@ const ExpertAvailability = () => {
                 )}
                 {profile.availability.breakDates.map((date, idx) => (
                   <div key={idx} className="flex justify-between items-center bg-red-50 border border-red-100 px-3 py-2 rounded-lg text-sm text-red-700">
-                    <span>{new Date(date.start).toDateString()}</span>
+                    <span>{formatKolkataDateString(date.start)}</span>
                     <button onClick={() => removeBreakDate(idx)} className="text-red-400 hover:text-red-600">
                       <X size={14} />
                     </button>

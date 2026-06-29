@@ -3,7 +3,7 @@ import WalletTransaction from '../models/WalletTransaction.js';
 
 export const getWalletBalance = async (req, res) => {
   try {
-    const expertId = req.user._id;
+    const expertId = req.user.userId;
 
     // Ensure wallet exists
     let wallet = await Wallet.findOne({ userId: expertId });
@@ -26,7 +26,7 @@ export const getWalletBalance = async (req, res) => {
 
 export const getWalletTransactions = async (req, res) => {
   try {
-    const expertId = req.user._id;
+    const expertId = req.user.userId;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;

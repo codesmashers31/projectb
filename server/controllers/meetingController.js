@@ -4,13 +4,19 @@ import * as authUtils from '../utils/authorization.js';
 
 export const joinMeeting = async (req, res) => {
     try {
-        const { sessionId, role, userId } = req.body; // or req.user if auth middleware used
+        const { sessionId } = req.body;
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized: Access token required" });
+        }
 
         // 1. Get or Create Meeting
         const meeting = await meetingService.getOrCreateMeeting(sessionId);
 
-        // 2. Authorization Check
-        if (!authUtils.canJoinMeeting(meeting, userId)) {
+        // 2. Authorization Check (Await the async check)
+        const authorized = await authUtils.canJoinMeeting(meeting, userId);
+        if (!authorized) {
             return res.status(403).json({ message: "You are not authorized to join this meeting." });
         }
 
@@ -47,13 +53,24 @@ export const joinMeeting = async (req, res) => {
 
 export const endMeeting = async (req, res) => {
     try {
-        const { meetingId, userId } = req.body;
+        const { meetingId } = req.body;
+        const userId = req.user.userId;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized: Access token required" });
+        }
 
         const meeting = await meetingService.getMeeting(meetingId);
         if (!meeting) return res.status(404).json({ message: "Meeting not found" });
 
-        // Only Expert (Host) can end? 
-        if (meeting.expertId !== userId) {
+        // Only Expert (Host) can end
+        const Expert = (await import('../models/expertModel.js')).default;
+        const expertDoc = await Expert.findOne({ userId: userId });
+        
+        const isExpert = String(meeting.expertId) === String(userId) || 
+                         (expertDoc && (String(expertDoc._id) === String(meeting.expertId) || String(expertDoc.userId) === String(meeting.expertId)));
+
+        if (!isExpert) {
             return res.status(403).json({ message: "Only the expert can end the meeting." });
         }
 

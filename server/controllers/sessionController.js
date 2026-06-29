@@ -8,6 +8,10 @@ export const createSession = async (req, res) => {
     try {
         const { expertId, candidateId, userId, startTime, endTime, topics, level, status, skill } = req.body;
 
+        // Secure candidateId: Normal users can only book sessions for themselves
+        const requesterId = req.user.userId;
+        const finalCandidateId = req.user.userType === 'admin' ? (candidateId || userId || requesterId) : requesterId;
+
         // Use provided ID or generate one
         const sessionId = req.body.sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
@@ -54,7 +58,7 @@ export const createSession = async (req, res) => {
         const sessionData = {
             sessionId,
             expertId,
-            candidateId: candidateId || userId, // Handle alias
+            candidateId: finalCandidateId, // Enforced secure candidate ID
             startTime: start,
             endTime: end,
             topics: topics || [],
@@ -80,6 +84,17 @@ export const updateMeetingLink = async (req, res) => {
         if (!session) {
             return res.status(404).json({ message: "Session not found" });
         }
+
+        // Authorization check: Only the session's expert or admin can update meeting link
+        const expertProfile = await ExpertDetails.findOne({ $or: [{ _id: session.expertId }, { userId: session.expertId }] });
+        const isAuthorized = req.user.userType === 'admin' ||
+                             String(session.expertId) === String(req.user.userId) ||
+                             (expertProfile && String(expertProfile.userId) === String(req.user.userId));
+
+        if (!isAuthorized) {
+            return res.status(403).json({ message: "Forbidden: Access denied" });
+        }
+
         const updated = await sessionService.updateSessionMeetingLink(sessionId, meetingLink);
         return res.json({ success: true, data: updated });
     } catch (error) {
@@ -95,6 +110,17 @@ export const completeSession = async (req, res) => {
         if (!session) {
             return res.status(404).json({ message: "Session not found" });
         }
+
+        // Authorization check: Only the session's expert or admin can mark session completed
+        const expertProfile = await ExpertDetails.findOne({ $or: [{ _id: session.expertId }, { userId: session.expertId }] });
+        const isAuthorized = req.user.userType === 'admin' ||
+                             String(session.expertId) === String(req.user.userId) ||
+                             (expertProfile && String(expertProfile.userId) === String(req.user.userId));
+
+        if (!isAuthorized) {
+            return res.status(403).json({ message: "Forbidden: Access denied" });
+        }
+
         await sessionService.completeSession(sessionId);
         try {
             await meetingService.updateMeetingStatus(sessionId, 'finished');
@@ -112,6 +138,17 @@ export const getSession = async (req, res) => {
         const session = await sessionService.getSessionById(sessionId);
         if (!session) {
             return res.status(404).json({ message: "Session not found" });
+        }
+
+        // Authorization check: Only the candidate, the expert, or admin can view this session
+        const expertProfile = await ExpertDetails.findOne({ $or: [{ _id: session.expertId }, { userId: session.expertId }] });
+        const isAuthorized = req.user.userType === 'admin' ||
+                             String(session.candidateId) === String(req.user.userId) ||
+                             String(session.expertId) === String(req.user.userId) ||
+                             (expertProfile && String(expertProfile.userId) === String(req.user.userId));
+
+        if (!isAuthorized) {
+            return res.status(403).json({ message: "Forbidden: Access denied" });
         }
 
         // --- ENRICHMENT LOGIC (Single Session) ---
@@ -199,7 +236,6 @@ export const getSession = async (req, res) => {
                 profileImage: candidateImage
             }
         };
-
         res.json(enrichedSession);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -209,7 +245,28 @@ export const getSession = async (req, res) => {
 export const getSessionsByExpert = async (req, res) => {
     try {
         const { expertId } = req.params;
+
+        // Authorization check: Only the expert themselves or admin can see their sessions
+        const Expert = (await import('../models/expertModel.js')).default;
+        const expertProfile = await Expert.findOne({ $or: [{ _id: expertId }, { userId: expertId }] });
+        const isAuthorized = req.user && (
+                             req.user.userType === 'admin' ||
+                             String(expertId) === String(req.user.userId) ||
+                             (expertProfile && String(expertProfile.userId) === String(req.user.userId))
+        );
+
         const sessions = await sessionService.getSessionsByExpertId(expertId);
+
+        // If not the expert themselves and not admin (e.g. a candidate booking), return only time ranges to prevent PII exposure
+        if (!isAuthorized) {
+            const sanitized = sessions.map(session => ({
+                startTime: session.startTime,
+                endTime: session.endTime,
+                status: session.status
+            }));
+            return res.json(sanitized);
+        }
+
         res.json(sessions);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -219,6 +276,12 @@ export const getSessionsByExpert = async (req, res) => {
 export const getSessionsByCandidate = async (req, res) => {
     try {
         const { candidateId } = req.params;
+
+        // Authorization check: Only the candidate themselves or admin can see their sessions
+        if (req.user.userType !== 'admin' && String(req.user.userId) !== String(candidateId)) {
+            return res.status(403).json({ message: "Forbidden: Access denied" });
+        }
+
         const sessions = await sessionService.getSessionsByCandidateId(candidateId);
 
         // Import Expert, User and mongoose
@@ -376,6 +439,12 @@ export const devSeedSession = async (req, res) => {
 export const getUserSessions = async (req, res) => {
     try {
         const { userId, role } = req.params;
+
+        // Authorization check: Only the user themselves or admin can see their sessions
+        if (req.user.userType !== 'admin' && String(req.user.userId) !== String(userId)) {
+            return res.status(403).json({ message: "Forbidden: Access denied" });
+        }
+
         const sessions = await sessionService.getSessionsForUser(userId, role);
         res.json(sessions);
     } catch (error) {
@@ -385,9 +454,9 @@ export const getUserSessions = async (req, res) => {
 
 export const joinSession = async (req, res) => {
     const { sessionId } = req.params;
-    const { userId } = req.body; // In real app, get from req.user
+    const userId = req.user.userId; // Secure: retrieve userId from authenticated token payload
 
-    if (!userId) return res.status(401).json({ message: "User ID required" });
+    if (!userId) return res.status(401).json({ message: "Unauthorized: User ID required" });
 
     try {
         const session = await sessionService.getSessionById(sessionId);
@@ -521,6 +590,29 @@ export const submitReview = async (req, res) => {
         const sessionService = (await import('../services/sessionService.js'));
         const emailService = (await import('../services/emailService.js'));
 
+        // Fetch Session first to validate identity
+        const session = await sessionService.getSessionById(sessionId);
+        if (!session) {
+            return res.status(404).json({ success: false, message: "Session not found" });
+        }
+
+        // Enforce review role authorization checks
+        if (reviewerRole === 'expert') {
+            const expertProfile = await ExpertDetails.findOne({ $or: [{ _id: session.expertId }, { userId: session.expertId }] });
+            const isAuthorized = String(session.expertId) === String(req.user.userId) ||
+                                 (expertProfile && String(expertProfile.userId) === String(req.user.userId));
+            if (!isAuthorized) {
+                return res.status(403).json({ success: false, message: "Forbidden: You are not authorized as the expert for this session" });
+            }
+        } else if (reviewerRole === 'candidate') {
+            const isAuthorized = String(session.candidateId) === String(req.user.userId);
+            if (!isAuthorized) {
+                return res.status(403).json({ success: false, message: "Forbidden: You are not authorized as the candidate for this session" });
+            }
+        } else {
+            return res.status(400).json({ success: false, message: "Invalid reviewer role" });
+        }
+
         // Check if review already exists for this role
         const existingReview = await ReviewDetails.findOne({ sessionId, reviewerRole });
         if (existingReview) {
@@ -529,8 +621,8 @@ export const submitReview = async (req, res) => {
 
         const newReview = new ReviewDetails({
             sessionId,
-            expertId,      // Passed from frontend
-            candidateId,   // Passed from frontend
+            expertId: session.expertId, // Use verified ID from DB session
+            candidateId: session.candidateId, // Use verified ID from DB session
             reviewerRole,
             overallRating,
             technicalRating: technicalRating || 0,
@@ -547,7 +639,6 @@ export const submitReview = async (req, res) => {
         await newReview.save();
 
         // Update Session status
-        const session = await sessionService.getSessionById(sessionId);
         let walletCreditResult = null;
         if (session) {
             if (session.status !== 'completed') {
@@ -706,6 +797,26 @@ export const submitReview = async (req, res) => {
 export const getSessionReviews = async (req, res) => {
     try {
         const { sessionId } = req.params;
+        
+        // Find session to check authorization
+        const Session = (await import('../models/Session.js')).default;
+        const session = await Session.findOne({ sessionId });
+        if (!session) {
+            return res.status(404).json({ success: false, message: "Session not found" });
+        }
+
+        // Authorization check: Only participant or admin
+        const Expert = (await import('../models/expertModel.js')).default;
+        const expertProfile = await Expert.findOne({ $or: [{ _id: session.expertId }, { userId: session.expertId }] });
+        const isAuthorized = req.user.userType === 'admin' ||
+                             String(session.candidateId) === String(req.user.userId) ||
+                             String(session.expertId) === String(req.user.userId) ||
+                             (expertProfile && String(expertProfile.userId) === String(req.user.userId));
+
+        if (!isAuthorized) {
+            return res.status(403).json({ success: false, message: "Forbidden: Access denied" });
+        }
+
         const Review = (await import('../models/reviewModel.js')).default;
         const reviews = await Review.find({ sessionId });
 
@@ -736,6 +847,11 @@ export const requestFeedback = async (req, res) => {
         const session = await Session.findOne({ sessionId });
         if (!session) {
             return res.status(404).json({ success: false, message: "Session not found" });
+        }
+
+        // Authorization check: Only candidate or admin can request feedback
+        if (req.user.userType !== 'admin' && String(session.candidateId) !== String(req.user.userId)) {
+            return res.status(403).json({ success: false, message: "Forbidden: Access denied" });
         }
 
         if (session.feedbackRequested) {

@@ -142,7 +142,7 @@ function AppRoutes() {
         <Route element={<RoleBasedRoute allowedRoles={['expert', 'candidate', 'user']} />}>
           <Route path="/watch-mock" element={<WatchMock />} />
           <Route path="/ai-video" element={<AiInterview />} />
-          <Route path="/book-session" element={<BookSessionPage />} />
+          <Route path="/book-session" element={<ErrorBoundary><BookSessionPage /></ErrorBoundary>} />
           <Route path="/payment" element={<PaymentPage />} />
           <Route path="/live-meeting/:sessionId?" element={<LiveMeeting />} />
           <Route path="/resume-builder" element={<ResumeBuilderPage />} />
@@ -165,7 +165,7 @@ function AppRoutes() {
             <Route index element={<DashboardIndex />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="sessions" element={<SessionsPage />} />
-            <Route path="availability" element={<AvailabilityPage />} />
+            <Route path="availability" element={<ErrorBoundary><AvailabilityPage /></ErrorBoundary>} />
             <Route path="skills" element={<SkillsPage />} />
             <Route path="withdraw" element={<WithdrawalPage />} />
             <Route path="settings" element={<SettingsPage />} />
