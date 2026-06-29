@@ -35,8 +35,10 @@ const PaymentPage: React.FC = () => {
     return 0;
   };
 
-  // Set base price to 1 INR for premium upgrade testing, or strictly 3 INR for booking testing
-  const basePrice = upgradeType === 'premium' ? 1 : 3;
+  // Set base price to 159 INR for premium upgrade, or use the actual bookingDetails price
+  const basePrice = upgradeType === 'premium' 
+    ? 159 
+    : (bookingDetails?.price ? parsePrice(bookingDetails.price) : 3);
 
   const gstAmount = 0; // Temporarily removed GST for testing
   const discountAmount = appliedFreePromo
@@ -48,7 +50,7 @@ const PaymentPage: React.FC = () => {
   const orderSummary = {
     productName: upgradeType === 'premium' 
       ? "Premium Membership" 
-      : (bookingDetails ? `${bookingDetails.skill || bookingDetails.category} Mock Interview` : "Premium Subscription"),
+      : (bookingDetails ? `${bookingDetails.category || bookingDetails.skill} Mock Interview` : "Premium Subscription"),
     plan: upgradeType === 'premium'
       ? "LIFETIME - 3 Free Interviews"
       : (bookingDetails ? `${bookingDetails.duration} Min Session with ${bookingDetails.expertName}` : "Annual Plan"),
@@ -184,14 +186,10 @@ const PaymentPage: React.FC = () => {
 
   const handleApplyDiscount = () => {
     const code = discountCode.trim().toUpperCase();
-    if (code === "FREE100" || code === "MOCKEEFYFREE") {
+    if (code === "FREEMU001") {
       setAppliedFreePromo(true);
       setAppliedDiscount(false);
       Swal.fire({ title: "Applied!", text: "Free session — no payment required!", icon: "success", timer: 2000 });
-    } else if (code === "SAVE25") {
-      setAppliedDiscount(true);
-      setAppliedFreePromo(false);
-      Swal.fire({ title: "Applied!", text: "25% discount added!", icon: "success", timer: 1500 });
     } else {
       Swal.fire({ title: "Invalid", text: "Code not found", icon: "error" });
     }
@@ -224,7 +222,9 @@ const PaymentPage: React.FC = () => {
       duration: bookingDetails?.duration,
       skill: bookingDetails?.skill,
       category: bookingDetails?.category,
-      notes: "Booked with free promo code",
+      notes: appliedFreePromo 
+        ? `Booked with promo code: ${discountCode.trim().toUpperCase()}` 
+        : "Booked with free promo code",
     };
   };
 
@@ -409,24 +409,72 @@ const PaymentPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-4 mb-8">
-                <div className="flex items-center p-4 bg-gray-50 rounded-2xl">
-                  <Video className="w-10 h-10 text-blue-600 p-2 bg-blue-100 rounded-xl mr-4" />
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">{orderSummary.productName}</p>
-                    <p className="text-xs text-gray-500">{bookingDetails?.expertName || "Expert Session"}</p>
+                <div className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 bg-indigo-50 border border-indigo-100/50 rounded-xl flex items-center justify-center text-indigo-650 shrink-0">
+                      <Video size={20} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-800 leading-tight">{orderSummary.productName}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">with {bookingDetails?.expertName || "Expert Session"}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Badges for booking details */}
+                  <div className="flex flex-wrap gap-1.5 justify-end max-w-[280px]">
+                    {bookingDetails?.category && (
+                      <span className="px-2 py-0.5 rounded-full bg-blue-50 border border-blue-100/60 text-[9px] font-bold text-blue-650 tracking-wide inline-flex items-center gap-1 leading-normal shadow-sm shadow-blue-100/10">
+                        <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0" />
+                        {bookingDetails.category}
+                      </span>
+                    )}
+                    {bookingDetails?.skill && (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100/60 text-[9px] font-bold text-emerald-650 tracking-wide inline-flex items-center gap-1 leading-normal shadow-sm shadow-emerald-100/10">
+                        <span className="w-1 h-1 rounded-full bg-emerald-500 shrink-0" />
+                        {bookingDetails.skill}
+                      </span>
+                    )}
+                    {bookingDetails?.duration && (
+                      <span className="px-2 py-0.5 rounded-full bg-slate-50 border border-slate-200/60 text-[9px] font-bold text-slate-600 tracking-wide inline-flex items-center gap-1 leading-normal shadow-sm shadow-slate-100/10">
+                        <span className="w-1 h-1 rounded-full bg-slate-400 shrink-0" />
+                        {bookingDetails.duration} Min
+                      </span>
+                    )}
+                    {bookingDetails?.level && (
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-100/60 text-[9px] font-bold text-indigo-650 tracking-wide inline-flex items-center gap-1 leading-normal shadow-sm shadow-indigo-100/10">
+                        <span className="w-1 h-1 rounded-full bg-indigo-500 shrink-0" />
+                        {bookingDetails.level}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 bg-gray-50 rounded-2xl">
-                    <Calendar className="w-4 h-4 text-gray-400 mb-1" />
-                    <p className="text-xs text-gray-500">Date</p>
-                    <p className="text-sm font-bold text-gray-900">{bookingDetails?.date ? new Date(bookingDetails.date).toLocaleDateString() : "TBD"}</p>
+                  <div className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                    <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                      <Calendar size={13} className="text-indigo-650" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider">Date</p>
+                    </div>
+                    <p className="text-xs font-black text-slate-800 tracking-tight mt-1.5">
+                      {bookingDetails?.date 
+                        ? new Date(bookingDetails.date).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })
+                        : "TBD"}
+                    </p>
                   </div>
-                  <div className="p-4 bg-gray-50 rounded-2xl">
-                    <Clock className="w-4 h-4 text-gray-400 mb-1" />
-                    <p className="text-xs text-gray-500">Time</p>
-                    <p className="text-sm font-bold text-gray-900">{bookingDetails?.slot?.time || "TBD"}</p>
+                  
+                  <div className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                    <div className="flex items-center gap-1.5 text-slate-400 mb-1">
+                      <Clock size={13} className="text-indigo-650" />
+                      <p className="text-[10px] font-bold uppercase tracking-wider">Time Slot</p>
+                    </div>
+                    <p className="text-xs font-black text-slate-800 tracking-tight mt-1.5">
+                      {bookingDetails?.slot?.time || "TBD"}
+                    </p>
                   </div>
                 </div>
               </div>

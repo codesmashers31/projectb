@@ -46,6 +46,7 @@ export const createOrder = async (req, res) => {
 import * as sessionService from '../services/sessionService.js';
 import ExpertDetails from '../models/expertModel.js';
 import User from '../models/User.js';
+import Session from '../models/Session.js';
 import { createNotification } from './notificationController.js';
 
 export const verifyPayment = async (req, res) => {
@@ -259,6 +260,21 @@ export const createFreeBooking = async (req, res) => {
                 success: false,
                 message: 'Missing required booking details (expertId, candidateId, startTime, endTime)',
             });
+        }
+
+        const notes = bookingDetails.notes || '';
+        if (notes.toUpperCase().includes('FREEMU001')) {
+            // Check if this candidate has already used this promo code
+            const alreadyUsed = await Session.findOne({
+                candidateId: bookingDetails.candidateId,
+                notes: { $regex: /FREEMU001/i }
+            });
+            if (alreadyUsed) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'You have already used the FREEMU001 promo code. It can only be used once.'
+                });
+            }
         }
 
         const startTime = new Date(bookingDetails.startTime);

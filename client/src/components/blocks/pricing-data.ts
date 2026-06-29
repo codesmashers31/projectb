@@ -7,8 +7,8 @@ export const TIERS: PricingTier[] = [
     id: "premium-access",
     name: "Premium Access",
     price: {
-      monthly: 99,
-      yearly: 999,
+      monthly: 159,
+      yearly: 1590,
     },
     description: "Get everything you need to excel in your interviews",
     features: [

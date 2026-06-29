@@ -669,7 +669,9 @@ const BookSessionPage = () => {
       duration: sessionDuration,
       skill: selectedSkill,
       category: profile?.category,
-      notes: "Booked with free promo code",
+      notes: appliedFreePromo 
+        ? `Booked with promo code: ${discountCode.trim().toUpperCase()}` 
+        : "Booked with free promo code",
     };
   };
 
@@ -703,11 +705,11 @@ const BookSessionPage = () => {
 
   const handleApplyPromo = () => {
     const code = discountCode.trim().toUpperCase();
-    if (code === "FREE100" || code === "MOCKEEFYFREE") {
+    if (code === "FREEMU001") {
       setAppliedFreePromo(true);
       Swal.fire({ title: "Applied!", text: "Free session — no payment required. Click Confirm & Book to complete.", icon: "success", timer: 2500 });
     } else {
-      Swal.fire({ title: "Invalid", text: "Code not found. Try FREE100 or MOCKEEFYFREE for a free session.", icon: "error" });
+      Swal.fire({ title: "Invalid", text: "Code not found.", icon: "error" });
     }
   };
 
@@ -955,7 +957,7 @@ const BookSessionPage = () => {
         <div className="flex gap-2">
           <input
             type="text"
-            placeholder="e.g. FREE100"
+            placeholder="Enter promo code"
             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/25 focus:border-blue-300"
             value={discountCode}
             onChange={(e) => setDiscountCode(e.target.value)}
@@ -1348,21 +1350,48 @@ const BookSessionPage = () => {
 
                       {/* Expertise Tags */}
                       <div>
-                        <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                          <Award className="w-5 h-5 text-gray-400" />
+                        <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-3.5 flex items-center gap-1.5">
+                          <Award className="w-4 h-4 text-indigo-650" />
                           Areas of Expertise
                         </h4>
-                        <div className="flex flex-wrap gap-3">
-                          {profile.skills.map((skill, idx) => (
-                            <span key={idx} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-800 rounded-xl text-sm font-bold hover:border-[#004fcb] hover:bg-blue-50/40 transition-colors cursor-default shadow-sm">
-                              <Zap className="w-4 h-4 text-amber-500 shrink-0" />
-                              {skill}
-                            </span>
-                          ))}
-                          {["Mock Interviews", "Technical Round", "Behavioral"].map((label, idx) => (
-                            <span key={`extra-${idx}`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 border border-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:border-[#004fcb] hover:bg-blue-50/40 transition-colors cursor-default">
-                              <Check className="w-4 h-4 text-green-600 shrink-0" />
-                              {label}
+                        <div className="flex flex-wrap gap-2">
+                          {profile.skills.map((skill, idx) => {
+                            const name = skill.toLowerCase();
+                            let SkillIcon = Award;
+                            let iconColor = "text-slate-400";
+                            
+                            if (name.includes("react") || name.includes("frontend") || name.includes("web") || name.includes("javascript") || name.includes("html") || name.includes("css")) {
+                              SkillIcon = Code2;
+                              iconColor = "text-blue-500";
+                            } else if (name.includes("python") || name.includes("backend") || name.includes("node") || name.includes("java") || name.includes("c++") || name.includes("go") || name.includes("development") || name.includes("software")) {
+                              SkillIcon = Terminal;
+                              iconColor = "text-emerald-500";
+                            } else if (name.includes("design") || name.includes("ui") || name.includes("ux") || name.includes("product") || name.includes("figma")) {
+                              SkillIcon = Zap;
+                              iconColor = "text-amber-500";
+                            } else if (name.includes("manager") || name.includes("agile") || name.includes("scrum") || name.includes("business") || name.includes("marketing")) {
+                              SkillIcon = Briefcase;
+                              iconColor = "text-indigo-500";
+                            } else {
+                              SkillIcon = Award;
+                              iconColor = "text-purple-500";
+                            }
+                            
+                            return (
+                              <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold hover:border-[#004fcb] hover:bg-blue-50/40 transition-all cursor-default shadow-sm">
+                                <SkillIcon className={`w-3.5 h-3.5 ${iconColor} shrink-0`} />
+                                {skill}
+                              </span>
+                            );
+                          })}
+                          {[
+                            { label: "Mock Interviews", icon: CheckCircle, color: "text-emerald-500" },
+                            { label: "Technical Round", icon: Code2, color: "text-blue-500" },
+                            { label: "Behavioral", icon: Briefcase, color: "text-indigo-500" }
+                          ].map((item, idx) => (
+                            <span key={`extra-${idx}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200/60 text-slate-600 rounded-xl text-xs font-semibold hover:border-[#004fcb] hover:bg-blue-50/40 transition-all cursor-default">
+                              <item.icon className={`w-3.5 h-3.5 ${item.color} shrink-0`} />
+                              {item.label}
                             </span>
                           ))}
                         </div>

@@ -26,7 +26,7 @@ const PLANS = [
     id: "pro-monthly",
     name: "Pro",
     tagline: "Most popular",
-    price: "₹499",
+    price: "₹159",
     period: "/ month",
     icon: Crown,
     features: [
@@ -45,7 +45,7 @@ const PLANS = [
     id: "pro-annual",
     name: "Pro Annual",
     tagline: "Best value",
-    price: "₹4,499",
+    price: "₹1,599",
     period: "/ year",
     savings: "Save 25%",
     icon: Sparkles,

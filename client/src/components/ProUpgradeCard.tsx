@@ -45,7 +45,7 @@ export const ProUpgradeCard = () => {
                     <h3 className="font-bold text-lg leading-tight text-gray-900">Life-time Access</h3>
                 </div>
                 <div className="text-right">
-                    <span className="block text-2xl font-bold text-[#004fcb]">₹499</span>
+                    <span className="block text-2xl font-bold text-[#004fcb]">₹159</span>
                     <span className="text-[10px] text-gray-500 uppercase font-medium">One-time</span>
                 </div>
             </div>

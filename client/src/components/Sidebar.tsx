@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Bookmark,
   Award,
-  Pencil
+  Pencil,
+  Sparkles
 } from "lucide-react";
 import axios from '../lib/axios';
 import { useNavigate, useLocation } from "react-router-dom";
@@ -72,9 +73,6 @@ const Sidebar = () => {
           : "text-slate-600 hover:bg-slate-50 hover:text-indigo-600"
       }`}
     >
-      {active && (
-        <span className="absolute left-0 top-0 bottom-0 w-1 bg-white rounded-r-md" />
-      )}
       <div className="flex items-center gap-3 relative z-10">
         <Icon 
           size={15} 
@@ -152,19 +150,29 @@ const Sidebar = () => {
                 {displayProfile.name}
               </h3>
               
-              <div className="mt-1.5 flex flex-wrap gap-1 items-center">
-                <span className="px-1.5 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-[8px] font-bold text-indigo-600 uppercase tracking-wider inline-block leading-none">
-                  {roleLine}
+              <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+                {/* Experience/Role Badge */}
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-100/80 text-[9px] font-bold text-indigo-650 tracking-wide inline-flex items-center gap-1.5 leading-normal shadow-sm shadow-indigo-100/10">
+                  <span className="w-1 h-1 rounded-full bg-indigo-500 shrink-0" />
+                  {roleLine.toUpperCase()}
                 </span>
-                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-wider inline-block leading-none ${
+
+                {/* Profile Completion Badge */}
+                <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wide inline-flex items-center gap-1.5 leading-normal shadow-sm ${
                   displayProfile.profileCompletion >= 90 
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                    : 'bg-amber-50 text-amber-700 border border-amber-200'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100/80 shadow-emerald-100/10' 
+                    : 'bg-amber-50 text-amber-750 border border-amber-100/80 shadow-amber-100/10'
                 }`}>
+                  <span className={`w-1 h-1 rounded-full shrink-0 ${
+                    displayProfile.profileCompletion >= 90 ? 'bg-emerald-500' : 'bg-amber-500'
+                  }`} />
                   {displayProfile.profileCompletion}%
                 </span>
+
+                {/* Premium / Pro Status Badge */}
                 {displayProfile.isPremium && (
-                  <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-bold uppercase tracking-wider inline-block leading-none shadow-sm shadow-orange-500/10">
+                  <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-black tracking-wide inline-flex items-center gap-1 leading-normal shadow-sm shadow-orange-500/15">
+                    <Sparkles size={8} className="text-amber-100 shrink-0 animate-pulse" />
                     PRO
                   </span>
                 )}
