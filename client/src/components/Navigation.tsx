@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from '../lib/axios';
 import {
   Bell,
@@ -40,10 +40,35 @@ interface Notification {
   };
 }
 
+const MOCK_MESSAGES = [
+  {
+    id: 1,
+    name: "Sarah Johnson",
+    lastMessage: "Thanks for the session! It was really helpful.",
+    time: "10:30 AM",
+    unread: true,
+  },
+  {
+    id: 2,
+    name: "Michael Chen",
+    lastMessage: "Can we reschedule our mock interview?",
+    time: "Yesterday",
+    unread: false,
+  },
+  {
+    id: 3,
+    name: "David Smith",
+    lastMessage: "I've uploaded my resume for review.",
+    time: "Yesterday",
+    unread: false,
+  }
+];
+
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -51,8 +76,10 @@ const Navigation = () => {
   const menuRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const messagesDropdownRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const { user, token, logout } = useAuth();
   const { data: userProfile } = useUserProfile();
@@ -144,6 +171,7 @@ const Navigation = () => {
       if (menuRef.current && !menuRef.current.contains(target) && isMenuOpen) setIsMenuOpen(false);
       if (profileMenuRef.current && !profileMenuRef.current.contains(target)) setIsProfileMenuOpen(false);
       if (notificationRef.current && !notificationRef.current.contains(target)) setIsNotificationOpen(false);
+      if (messagesDropdownRef.current && !messagesDropdownRef.current.contains(target)) setIsMessagesOpen(false);
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -154,12 +182,14 @@ const Navigation = () => {
     setIsMenuOpen(!isMenuOpen);
     setIsNotificationOpen(false);
     setIsProfileMenuOpen(false);
+    setIsMessagesOpen(false);
     setIsMoreOpen(false);
   };
 
   const closeAllDropdowns = () => {
     setIsNotificationOpen(false);
     setIsProfileMenuOpen(false);
+    setIsMessagesOpen(false);
     setIsMenuOpen(false);
     setIsMoreOpen(false);
   };
@@ -277,8 +307,13 @@ const Navigation = () => {
             <div className="hidden md:flex items-center space-x-1 lg:space-x-3">
 
               {/* Chat / Messages */}
-              <div className="relative">
+              <div className="relative" ref={messagesDropdownRef}>
                 <button
+                  onClick={() => {
+                    setIsMessagesOpen(!isMessagesOpen);
+                    setIsNotificationOpen(false);
+                    setIsProfileMenuOpen(false);
+                  }}
                   className="p-2.5 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-50 transition-all active:scale-95 relative"
                   aria-label="Messages"
                 >
@@ -287,6 +322,51 @@ const Navigation = () => {
                     3
                   </span>
                 </button>
+
+                {isMessagesOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                      <h3 className="font-semibold text-slate-900 text-sm tracking-tight">Recent Messages</h3>
+                      <span className="text-[10px] bg-rose-50 border border-rose-100 text-rose-600 px-1.5 py-0.5 rounded-md font-bold">
+                        3 New
+                      </span>
+                    </div>
+                    
+                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
+                      {MOCK_MESSAGES.map((chat) => (
+                        <div
+                          key={chat.id}
+                          onClick={() => {
+                            setIsMessagesOpen(false);
+                            navigate("/my-sessions");
+                          }}
+                          className="p-4 flex items-start gap-3 hover:bg-slate-50/70 transition-all cursor-pointer"
+                        >
+                          <div className="relative shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white font-bold text-xs uppercase shrink-0 shadow-sm overflow-hidden">
+                              <span>{(chat.name || "CH").trim().substring(0, 2).toUpperCase()}</span>
+                            </div>
+                            <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-baseline mb-0.5">
+                              <h4 className="text-xs font-bold text-slate-800 truncate">{chat.name}</h4>
+                              <span className="text-[9px] text-slate-400 font-medium">{chat.time}</span>
+                            </div>
+                            <p className="text-[10px] text-slate-500 truncate leading-relaxed">
+                              {chat.lastMessage}
+                            </p>
+                          </div>
+
+                          {chat.unread && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-2 animate-pulse" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Notifications */}
@@ -426,8 +506,34 @@ const Navigation = () => {
             </div>
 
             {/* Mobile Toggle */}
-            <div className="md:hidden flex items-center gap-2">
-              <button onClick={toggleMenu} className="p-2.5 text-slate-900 hover:bg-slate-50 rounded-xl transition-colors">
+            <div className="md:hidden flex items-center gap-1.5">
+              {user && (
+                <>
+                  <Link 
+                    to="/my-sessions" 
+                    className="p-2 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-50 relative transition-all active:scale-95 flex items-center justify-center"
+                    aria-label="Messages"
+                  >
+                    <MessageSquare size={19} />
+                    <span className="absolute top-1 right-1 bg-rose-500 text-white text-[8px] rounded-full h-3.5 w-3.5 flex items-center justify-center font-bold border border-white">
+                      3
+                    </span>
+                  </Link>
+                  <Link 
+                    to="/notifications" 
+                    className="p-2 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-50 relative transition-all active:scale-95 flex items-center justify-center"
+                    aria-label="Notifications"
+                  >
+                    <Bell size={19} />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 bg-elite-blue text-white text-[8px] rounded-full h-3.5 w-3.5 flex items-center justify-center font-bold border border-white">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </Link>
+                </>
+              )}
+              <button onClick={toggleMenu} className="p-2 text-slate-900 hover:bg-slate-50 rounded-xl transition-colors">
                 {isMenuOpen ? <X size={22} /> : <Menu size={22} />}
               </button>
             </div>

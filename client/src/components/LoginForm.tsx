@@ -97,7 +97,21 @@ export const LoginForm = () => {
 
         {error && (
           <div className="mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
-            {error}
+            {error.includes("Account not found") ? (
+              <span>
+                Account not found. Please click{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/register")}
+                  className="underline font-bold text-red-800 hover:text-red-900"
+                >
+                  Create Account
+                </button>{" "}
+                to sign up first.
+              </span>
+            ) : (
+              error
+            )}
           </div>
         )}
 
