@@ -1,12 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import axios from '../lib/axios';
 import { toast } from "sonner";
 import { PrimaryButton } from '../pages/ExpertDashboard';
 import { useAuth } from '../context/AuthContext';
 import { Country, State, City } from 'country-state-city';
-import { AlertCircle, Lock } from 'lucide-react';
+import { AlertCircle, Lock, ChevronDown, Check } from 'lucide-react';
 
-const FormInput = ({ label, value, onChange, placeholder, type = "text", error, maxLength }: any) => (
+const FormInput = ({ label, value, onChange, placeholder, type = "text", error, maxLength, disabled }: any) => (
     <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium text-gray-700">{label}</label>
         <input
@@ -15,33 +15,167 @@ const FormInput = ({ label, value, onChange, placeholder, type = "text", error, 
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             maxLength={maxLength}
-            className={`border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all ${error ? "border-red-500 focus:border-red-500 bg-red-50" : "border-gray-300 focus:border-blue-500"
+            disabled={disabled}
+            className={`border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:bg-gray-50 disabled:text-gray-500 disabled:border-gray-200 ${error ? "border-red-500 focus:border-red-500 bg-red-50" : "border-gray-300 focus:border-blue-500"
                 }`}
         />
         {error && <span className="text-xs text-red-500">{error}</span>}
     </div>
 );
 
-const FormSelect = ({ label, value, onChange, options, disabled, error, placeholder }: any) => (
-    <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-gray-700">{label}</label>
-        <select
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            disabled={disabled}
-            className={`border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all bg-white disabled:bg-gray-100 ${error ? "border-red-500 focus:border-red-500 bg-red-50" : "border-gray-300 focus:border-blue-500"
-                }`}
-        >
-            <option value="">{placeholder || `Select ${label}`}</option>
-            {options.map((opt: any) => (
-                <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                </option>
-            ))}
-        </select>
-        {error && <span className="text-xs text-red-500">{error}</span>}
+function CustomSelect({
+  value,
+  options,
+  onChange,
+  placeholder,
+  error,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  placeholder?: string;
+  error?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setSearchQuery("");
+    }
+  }, [open]);
+
+  const handleToggle = () => {
+    if (!open) {
+      if (dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 340) {
+          setOpenUp(true);
+        } else {
+          setOpenUp(false);
+        }
+      }
+    }
+    setOpen((v) => !v);
+  };
+
+  const selected = options.find((o) => o.value === value);
+  const showSearch = options.length > 5;
+
+  const filteredOptions = useMemo(() => {
+    if (!searchQuery) return options;
+    return options.filter((o) =>
+      o.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [options, searchQuery]);
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={handleToggle}
+        className={`w-full flex items-center justify-between gap-2 bg-white border rounded-xl px-3 py-2.5 text-left shadow-sm transition-all cursor-pointer ${
+          error
+            ? "border-red-500 focus:border-red-500 bg-red-50"
+            : "border-slate-200 hover:border-blue-300 hover:bg-blue-50/30"
+        }`}
+      >
+        <span className={`text-sm font-semibold truncate ${selected ? "text-slate-800" : "text-slate-400"}`}>
+          {selected ? selected.label : placeholder || "Select option"}
+        </span>
+        <ChevronDown size={16} className={`text-slate-500 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className={`absolute z-30 w-full rounded-xl border border-slate-200 bg-white shadow-xl left-0 flex flex-col overflow-hidden ${
+          openUp ? "bottom-full mb-2" : "top-full mt-2"
+        }`}>
+          {showSearch && (
+            <div className="p-2 border-b border-slate-100 bg-slate-50/50 sticky top-0 bg-white z-10 shrink-0">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search..."
+                className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400/20 bg-white"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
+
+          <div className="max-h-48 overflow-y-auto p-1.5 w-full">
+            {filteredOptions.length === 0 ? (
+              <div className="text-center text-xs text-slate-400 py-3 font-semibold">
+                No results found
+              </div>
+            ) : (
+              filteredOptions.map((option) => {
+                const isActive = option.value === value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(option.value);
+                      setOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-left text-sm font-semibold transition-colors cursor-pointer ${
+                      isActive ? "bg-blue-50 text-blue-700" : "hover:bg-slate-50 text-slate-700"
+                    }`}
+                  >
+                    <span className="truncate">{option.label}</span>
+                    {isActive && <Check size={12} className="shrink-0 text-blue-600" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
     </div>
-);
+  );
+}
+
+const FormSelect = ({ label, value, onChange, options, disabled, error, placeholder }: any) => {
+    const displayLabel = options.find((opt: any) => opt.value === value)?.label || value || "";
+
+    return (
+        <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-gray-700">{label}</label>
+            {disabled ? (
+                <input
+                    type="text"
+                    value={displayLabel}
+                    disabled
+                    placeholder={placeholder}
+                    className="border rounded-lg px-3 py-2 text-sm bg-gray-50 text-gray-500 border-gray-200 cursor-not-allowed outline-none transition-all"
+                />
+            ) : (
+                <CustomSelect
+                    value={value}
+                    onChange={onChange}
+                    options={options}
+                    placeholder={placeholder}
+                    error={error}
+                />
+            )}
+            {error && <span className="text-xs text-red-500">{error}</span>}
+        </div>
+    );
+};
 
 interface PersonalInfoProps {
     onUpdate?: () => void;
@@ -54,6 +188,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
 
     const [countryCode, setCountryCode] = useState("");
     const [stateCode, setStateCode] = useState("");
+    const [isEditing, setIsEditing] = useState(false);
 
     const initialProfile = {
         personal: {
@@ -170,45 +305,41 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
         return Object.keys(newErrors).length === 0;
     };
 
+    const fetchData = async () => {
+        try {
+            const [personalRes, catRes] = await Promise.all([
+                axios.get(`/api/expert/personalinfo`),
+                axios.get(`/api/categories`)
+            ]);
+            const catList = Array.isArray(catRes.data) ? catRes.data : [];
+            setCategories(catList.filter((c: any) => c.name).map((c: any) => ({ _id: c._id, name: c.name })));
+
+            if (personalRes.data.success && personalRes.data.data) {
+                const data = personalRes.data.data;
+                setProfile({
+                    personal: {
+                        name: data.userName || user?.name || "",
+                        phone: data.mobile || "",
+                        gender: data.gender || "",
+                        dob: data.dob ? data.dob.split("T")[0] : "",
+                        country: data.country || "",
+                        state: data.state || "",
+                        city: data.city || "",
+                        category: data.category || ""
+                    }
+                });
+            } else if (user?.name) {
+                setProfile(prev => ({ ...prev, personal: { ...prev.personal, name: user.name || "" } }));
+            }
+        } catch (err: any) {
+            console.error("Failed to fetch data:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         setLoading(true);
-        // Preference: Use profileData passed from parent if available to avoid double fetch
-        // But for editing we usually want fresh data, so we stick to fetch or merge.
-        // Let's merge for now if profileData matches structure, else fetch.
-
-        const fetchData = async () => {
-            try {
-                const [personalRes, catRes] = await Promise.all([
-                    axios.get(`/api/expert/personalinfo`),
-                    axios.get(`/api/categories`)
-                ]);
-                const catList = Array.isArray(catRes.data) ? catRes.data : [];
-                setCategories(catList.filter((c: any) => c.name).map((c: any) => ({ _id: c._id, name: c.name })));
-
-                if (personalRes.data.success && personalRes.data.data) {
-                    const data = personalRes.data.data;
-                    setProfile({
-                        personal: {
-                            name: data.userName || user?.name || "",
-                            phone: data.mobile || "",
-                            gender: data.gender || "",
-                            dob: data.dob ? data.dob.split("T")[0] : "",
-                            country: data.country || "",
-                            state: data.state || "",
-                            city: data.city || "",
-                            category: data.category || ""
-                        }
-                    });
-                } else if (user?.name) {
-                    setProfile(prev => ({ ...prev, personal: { ...prev.personal, name: user.name || "" } }));
-                }
-            } catch (err: any) {
-                console.error("Failed to fetch data:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
     }, [user]);
 
@@ -238,6 +369,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
 
             if (response.data.success) {
                 toast.success("Personal info updated successfully!");
+                setIsEditing(false);
                 if (onUpdate) onUpdate();
             } else {
                 toast.error("Failed to update personal info");
@@ -275,6 +407,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
                         value={profile.personal?.name || ""}
                         onChange={(v: string) => setPersonalField("name", v)}
                         error={errors.name}
+                        disabled={!isEditing}
                     />
 
                     <FormInput
@@ -288,6 +421,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
                         }}
                         maxLength={10}
                         error={errors.phone}
+                        disabled={!isEditing}
                     />
 
                     <FormSelect
@@ -297,6 +431,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
                         options={["Male", "Female", "Other"].map(g => ({ value: g, label: g }))}
                         placeholder="Select Gender"
                         error={errors.gender}
+                        disabled={!isEditing}
                     />
 
                     <FormInput
@@ -305,6 +440,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
                         value={profile.personal?.dob || ""}
                         onChange={(v: string) => setPersonalField("dob", v)}
                         error={errors.dob}
+                        disabled={!isEditing}
                     />
                 </div>
 
@@ -316,6 +452,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
                         options={allCountries}
                         placeholder="Select Country"
                         error={errors.country}
+                        disabled={!isEditing}
                     />
 
                     <FormSelect
@@ -323,7 +460,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
                         value={stateCode}
                         onChange={(v: string) => handleStateChange(v)}
                         options={allStates}
-                        disabled={!countryCode}
+                        disabled={!countryCode || !isEditing}
                         placeholder="Select State"
                         error={errors.state}
                     />
@@ -333,7 +470,7 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
                         value={profile.personal.city}
                         onChange={(v: string) => setPersonalField("city", v)}
                         options={allCities}
-                        disabled={!stateCode}
+                        disabled={!stateCode || !isEditing}
                         placeholder="Select City"
                         error={errors.city}
                     />
@@ -341,9 +478,28 @@ const PersonalInfo = ({ onUpdate, profileData, isMissing }: PersonalInfoProps) =
             </div>
 
             <div className="mt-8 flex justify-end">
-                <PrimaryButton onClick={savePersonal} className="px-8">
-                    Save Personal Information
-                </PrimaryButton>
+                {isEditing ? (
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                fetchData();
+                                setErrors({});
+                                setIsEditing(false);
+                            }}
+                            className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                        <PrimaryButton onClick={savePersonal} className="px-8">
+                            Save Personal Information
+                        </PrimaryButton>
+                    </div>
+                ) : (
+                    <PrimaryButton onClick={() => setIsEditing(true)} className="px-8">
+                        Edit Personal Information
+                    </PrimaryButton>
+                )}
             </div>
         </div>
     );

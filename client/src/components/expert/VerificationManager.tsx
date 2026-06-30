@@ -15,6 +15,7 @@ export default function VerificationManager() {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [isEditing, setIsEditing] = useState(false);
 
     // Form states
     const [linkedinUrl, setLinkedinUrl] = useState('');
@@ -48,7 +49,7 @@ export default function VerificationManager() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'company' | 'aadhar') => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            if (file.size > 1 * 1024 * 1024) { // 1MB limit
+            if (file.size > 1 * 1024 * 1024) {
                 toast.error("File size must be below 1MB. Please upload a smaller file.");
                 return;
             }
@@ -58,7 +59,7 @@ export default function VerificationManager() {
     };
 
     const handleSubmit = async () => {
-        if (!linkedinUrl && !companyFile && !aadharFile) {
+        if (!companyFile && !aadharFile && linkedinUrl === (verification.linkedin || '')) {
             toast.info("No changes to save");
             return;
         }
@@ -91,9 +92,9 @@ export default function VerificationManager() {
                 setVerification(res.data.verification);
                 setCompanyFile(null);
                 setAadharFile(null);
-                // Clear file inputs
                 if (companyInputRef.current) companyInputRef.current.value = '';
                 if (aadharInputRef.current) aadharInputRef.current.value = '';
+                setIsEditing(false);
             }
         } catch (error) {
             console.error(error);
@@ -127,16 +128,16 @@ export default function VerificationManager() {
             </div>
 
             <div className="p-6 space-y-8">
-                {/* 1. LinkedIn URL */}
                 <div className="space-y-3">
                     <label className="block text-sm font-bold text-gray-700">LinkedIn Profile URL</label>
                     <div className="flex gap-4">
                         <input
                             type="url"
+                            disabled={!isEditing}
                             value={linkedinUrl}
                             onChange={(e) => setLinkedinUrl(e.target.value)}
                             placeholder="https://linkedin.com/in/your-profile"
-                            className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#004fcb] focus:border-[#004fcb] outline-none transition-all"
+                            className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#004fcb] focus:border-[#004fcb] outline-none transition-all disabled:bg-gray-50 disabled:text-gray-500 disabled:border-gray-200"
                         />
                     </div>
                     {verification.linkedin && (
@@ -148,7 +149,6 @@ export default function VerificationManager() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* 2. Company ID */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <label className="block text-sm font-bold text-gray-700">Company ID / Offer Letter</label>
@@ -156,32 +156,43 @@ export default function VerificationManager() {
                         </div>
 
                         <div
-                            className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${companyFile ? "border-[#004fcb] bg-blue-50/10" : "border-gray-200 hover:border-gray-300 bg-gray-50/50"
-                                }`}
+                            className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${
+                              isEditing
+                                ? companyFile
+                                  ? "border-[#004fcb] bg-blue-50/10"
+                                  : "border-gray-200 hover:border-gray-300 bg-gray-50/50 cursor-pointer"
+                                : "border-gray-200 bg-gray-50/50"
+                            }`}
                         >
-                            <input
-                                ref={companyInputRef}
-                                type="file"
-                                accept="image/*,.pdf"
-                                onChange={(e) => handleFileChange(e, 'company')}
-                                className="hidden"
-                                id="company-upload"
-                            />
+                            {isEditing && (
+                                <input
+                                    ref={companyInputRef}
+                                    type="file"
+                                    accept="image/*,.pdf"
+                                    onChange={(e) => handleFileChange(e, 'company')}
+                                    className="hidden"
+                                    id="company-upload"
+                                />
+                            )}
 
                             {verification.companyId?.url && !companyFile ? (
                                 <div className="space-y-2">
                                     <FileText className="w-10 h-10 text-green-600 mx-auto" />
                                     <p className="text-sm font-medium text-gray-900">{verification.companyId.name || 'Document Uploaded'}</p>
                                     <a href={verification.companyId.url} target="_blank" rel="noreferrer" className="text-xs text-[#004fcb] hover:underline block">View Document</a>
-                                    <label htmlFor="company-upload" className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer block mt-2 underline">Replace File</label>
+                                    {isEditing && (
+                                        <label htmlFor="company-upload" className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer block mt-2 underline">Replace File</label>
+                                    )}
                                 </div>
                             ) : companyFile ? (
                                 <div className="space-y-2">
                                     <FileText className="w-10 h-10 text-[#004fcb] mx-auto" />
                                     <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{companyFile.name}</p>
-                                    <button onClick={() => setCompanyFile(null)} className="text-xs text-red-500 hover:text-red-700 font-medium">Remove Selection</button>
+                                    {isEditing && (
+                                        <button onClick={() => setCompanyFile(null)} className="text-xs text-red-500 hover:text-red-700 font-medium">Remove Selection</button>
+                                    )}
                                 </div>
-                            ) : (
+                            ) : isEditing ? (
                                 <label htmlFor="company-upload" className="cursor-pointer space-y-2 w-full h-full flex flex-col items-center justify-center">
                                     <Upload className="w-8 h-8 text-gray-400" />
                                     <div className="space-y-1">
@@ -189,11 +200,15 @@ export default function VerificationManager() {
                                         <p className="text-xs text-gray-500">PDF, PNG, JPG up to 1MB</p>
                                     </div>
                                 </label>
+                            ) : (
+                                <div className="space-y-2 py-4">
+                                    <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+                                    <p className="text-sm font-medium text-gray-500">No document uploaded yet</p>
+                                </div>
                             )}
                         </div>
                     </div>
 
-                    {/* 3. Aadhar ID */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <label className="block text-sm font-bold text-gray-700">Govt ID (Aadhar/PAN)</label>
@@ -201,32 +216,43 @@ export default function VerificationManager() {
                         </div>
 
                         <div
-                            className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${aadharFile ? "border-[#004fcb] bg-blue-50/10" : "border-gray-200 hover:border-gray-300 bg-gray-50/50"
-                                }`}
+                            className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-colors ${
+                              isEditing
+                                ? aadharFile
+                                  ? "border-[#004fcb] bg-blue-50/10"
+                                  : "border-gray-200 hover:border-gray-300 bg-gray-50/50 cursor-pointer"
+                                : "border-gray-200 bg-gray-50/50"
+                            }`}
                         >
-                            <input
-                                ref={aadharInputRef}
-                                type="file"
-                                accept="image/*,.pdf"
-                                onChange={(e) => handleFileChange(e, 'aadhar')}
-                                className="hidden"
-                                id="aadhar-upload"
-                            />
+                            {isEditing && (
+                                <input
+                                    ref={aadharInputRef}
+                                    type="file"
+                                    accept="image/*,.pdf"
+                                    onChange={(e) => handleFileChange(e, 'aadhar')}
+                                    className="hidden"
+                                    id="aadhar-upload"
+                                />
+                            )}
 
                             {verification.aadhar?.url && !aadharFile ? (
                                 <div className="space-y-2">
                                     <FileText className="w-10 h-10 text-green-600 mx-auto" />
                                     <p className="text-sm font-medium text-gray-900">{verification.aadhar.name || 'Document Uploaded'}</p>
                                     <a href={verification.aadhar.url} target="_blank" rel="noreferrer" className="text-xs text-[#004fcb] hover:underline block">View Document</a>
-                                    <label htmlFor="aadhar-upload" className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer block mt-2 underline">Replace File</label>
+                                    {isEditing && (
+                                        <label htmlFor="aadhar-upload" className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer block mt-2 underline">Replace File</label>
+                                    )}
                                 </div>
                             ) : aadharFile ? (
                                 <div className="space-y-2">
                                     <FileText className="w-10 h-10 text-[#004fcb] mx-auto" />
                                     <p className="text-sm font-medium text-gray-900 truncate max-w-[200px]">{aadharFile.name}</p>
-                                    <button onClick={() => setAadharFile(null)} className="text-xs text-red-500 hover:text-red-700 font-medium">Remove Selection</button>
+                                    {isEditing && (
+                                        <button onClick={() => setAadharFile(null)} className="text-xs text-red-500 hover:text-red-700 font-medium">Remove Selection</button>
+                                    )}
                                 </div>
-                            ) : (
+                            ) : isEditing ? (
                                 <label htmlFor="aadhar-upload" className="cursor-pointer space-y-2 w-full h-full flex flex-col items-center justify-center">
                                     <Upload className="w-8 h-8 text-gray-400" />
                                     <div className="space-y-1">
@@ -234,26 +260,55 @@ export default function VerificationManager() {
                                         <p className="text-xs text-gray-500">PDF, PNG, JPG up to 1MB</p>
                                     </div>
                                 </label>
+                            ) : (
+                                <div className="space-y-2 py-4">
+                                    <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+                                    <p className="text-sm font-medium text-gray-500">No document uploaded yet</p>
+                                </div>
                             )}
                         </div>
                     </div>
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 flex justify-end">
-                    <button
-                        onClick={handleSubmit}
-                        disabled={uploading || (!companyFile && !aadharFile && !linkedinUrl)}
-                        className="flex items-center gap-2 bg-[#004fcb] hover:bg-[#003bb5] text-white px-8 py-2.5 rounded-lg font-medium shadow-sm transition-all disabled:opacity-70 active:scale-95"
-                    >
-                        {uploading ? (
-                            <>Uploading ({uploadProgress}%)...</>
-                        ) : (
-                            <>
-                                <Save className="w-4 h-4" />
-                                Save Verification Details
-                            </>
-                        )}
-                    </button>
+                    {isEditing ? (
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setCompanyFile(null);
+                                    setAadharFile(null);
+                                    fetchVerificationStatus();
+                                    setIsEditing(false);
+                                }}
+                                className="px-6 py-2.5 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={uploading || (!companyFile && !aadharFile && linkedinUrl === (verification.linkedin || ''))}
+                                className="flex items-center gap-2 bg-[#004fcb] hover:bg-[#003bb5] text-white px-8 py-2.5 rounded-lg font-medium shadow-sm transition-all disabled:opacity-70 active:scale-95 cursor-pointer"
+                            >
+                                {uploading ? (
+                                    <>Uploading ({uploadProgress}%)...</>
+                                ) : (
+                                    <>
+                                        <Save className="w-4 h-4" />
+                                        Save Verification Details
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setIsEditing(true)}
+                            className="bg-[#004fcb] hover:bg-[#003bb5] text-white px-8 py-2.5 rounded-lg font-medium shadow-sm transition-all active:scale-95 cursor-pointer"
+                        >
+                            Edit Verification Details
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

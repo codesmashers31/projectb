@@ -68,6 +68,23 @@
         font-weight: 700 !important;
         font-family: var(--font-sans) !important;
     }
+
+    /* Global Clickable Pointers */
+    button,
+    a,
+    [role="button"],
+    input[type="button"],
+    input[type="submit"],
+    select {
+        cursor: pointer;
+    }
+
+    button:disabled,
+    [role="button"]:disabled,
+    input[type="button"]:disabled,
+    select:disabled {
+        cursor: not-allowed !important;
+    }
 }
 
 @layer utilities {

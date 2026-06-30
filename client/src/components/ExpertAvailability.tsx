@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from '../lib/axios';
 import { toast } from "sonner";
 import { PrimaryButton } from '../pages/ExpertDashboard';
-import { X, Copy, Plus, Clock, Calendar as CalendarIcon, CheckCircle2 } from "lucide-react";
+import { X, Copy, Plus, Clock, Calendar as CalendarIcon, CheckCircle2, ChevronDown, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const formatKolkataDateString = (dateStr: string) => {
@@ -17,6 +17,358 @@ const formatKolkataDateString = (dateStr: string) => {
     year: 'numeric'
   });
 };
+
+const getKolkataTodayString = () => {
+  const d = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(d);
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  const year = parts.find(p => p.type === 'year')?.value;
+  return `${year}-${month}-${day}`;
+};
+
+const getKolkataMaxString = () => {
+  const d = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const parts = formatter.formatToParts(d);
+  const month = parts.find(p => p.type === 'month')?.value;
+  const day = parts.find(p => p.type === 'day')?.value;
+  const year = parseInt(parts.find(p => p.type === 'year')?.value || '2026', 10) + 5;
+  return `${year}-${month}-${day}`;
+};
+
+const autoAdjustDateYear = (dateStr: string): string => {
+  if (!dateStr) return dateStr;
+  
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  
+  const inputMonth = parseInt(parts[1], 10);
+  const inputDay = parseInt(parts[2], 10);
+  
+  const d = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const formattedParts = formatter.formatToParts(d);
+  const currentYear = parseInt(formattedParts.find(p => p.type === 'year')?.value || '2026', 10);
+  const currentMonth = parseInt(formattedParts.find(p => p.type === 'month')?.value || '06', 10);
+  const currentDay = parseInt(formattedParts.find(p => p.type === 'day')?.value || '30', 10);
+  
+  let targetYear = currentYear;
+  
+  if (inputMonth < currentMonth || (inputMonth === currentMonth && inputDay < currentDay)) {
+    targetYear = currentYear + 1;
+  }
+  
+  const mm = inputMonth.toString().padStart(2, '0');
+  const dd = inputDay.toString().padStart(2, '0');
+  return `${targetYear}-${mm}-${dd}`;
+};
+
+interface CustomSelectOption {
+  value: string;
+  label: string;
+}
+
+function CustomSelect({
+  value,
+  options,
+  onChange,
+  className = "",
+  align = "left",
+}: {
+  value: string;
+  options: CustomSelectOption[];
+  onChange: (value: string) => void;
+  className?: string;
+  align?: "left" | "right";
+}) {
+  const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const handleToggle = () => {
+    if (!open) {
+      if (dropdownRef.current) {
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        if (spaceBelow < 200) {
+          setOpenUp(true);
+        } else {
+          setOpenUp(false);
+        }
+      }
+    }
+    setOpen((v) => !v);
+  };
+
+  const selected = options.find((o) => o.value === value) || options[0];
+
+  return (
+    <div className={`relative ${className}`} ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={handleToggle}
+        className="w-full flex items-center justify-between gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-left shadow-sm hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer"
+      >
+        <span className="text-sm font-semibold text-slate-800 truncate">{selected?.label || ""}</span>
+        <ChevronDown size={14} className={`text-slate-500 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className={`absolute z-30 min-w-[75px] max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 ${
+          align === "right" ? "right-0" : "left-0"
+        } ${
+          openUp ? "bottom-full mb-2" : "top-full mt-2"
+        }`}>
+          {options.map((option) => {
+            const isActive = option.value === value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs font-semibold transition-colors cursor-pointer ${
+                  isActive ? "bg-blue-50 text-blue-700" : "hover:bg-slate-50 text-slate-700"
+                }`}
+              >
+                <span>{option.label}</span>
+                {isActive && <Check size={12} className="shrink-0 text-blue-600" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CustomDatePicker({
+  value,
+  onChange,
+  placeholder = "dd-mm-yyyy",
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [openUp, setOpenUp] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const [viewDate, setViewDate] = useState(() => {
+    if (value) {
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  });
+
+  useEffect(() => {
+    if (value) {
+      const parsed = new Date(value);
+      if (!isNaN(parsed.getTime())) {
+        setViewDate(parsed);
+      }
+    }
+  }, [value]);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  const todayKolkata = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+  todayKolkata.setHours(0, 0, 0, 0);
+
+  const maxDate = new Date(todayKolkata);
+  maxDate.setFullYear(maxDate.getFullYear() + 5);
+
+  const currentYear = viewDate.getFullYear();
+  const currentMonth = viewDate.getMonth();
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+  const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
+
+  const prevMonth = () => {
+    setViewDate(new Date(currentYear, currentMonth - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setViewDate(new Date(currentYear, currentMonth + 1, 1));
+  };
+
+  const handleSelectDay = (day: number) => {
+    const selectedDate = new Date(currentYear, currentMonth, day);
+    const y = selectedDate.getFullYear();
+    const m = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+    const d = selectedDate.getDate().toString().padStart(2, '0');
+    onChange(`${y}-${m}-${d}`);
+    setOpen(false);
+  };
+
+  const displayValue = () => {
+    if (!value) return "";
+    const parts = value.split('-');
+    if (parts.length !== 3) return value;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  };
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) {
+    cells.push(null);
+  }
+  for (let i = 1; i <= daysInMonth; i++) {
+    cells.push(i);
+  }
+
+  const weekdays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  return (
+    <div className="relative flex-1" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => {
+          if (!open) {
+            if (dropdownRef.current) {
+              const rect = dropdownRef.current.getBoundingClientRect();
+              const spaceBelow = window.innerHeight - rect.bottom;
+              if (spaceBelow < 300) {
+                setOpenUp(true);
+              } else {
+                setOpenUp(false);
+              }
+            }
+          }
+          setOpen((v) => !v);
+        }}
+        className="w-full flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-left shadow-sm hover:border-blue-300 hover:bg-blue-50/30 transition-all cursor-pointer text-sm font-semibold"
+      >
+        <span className={displayValue() ? "text-slate-800" : "text-slate-400"}>
+          {displayValue() || placeholder}
+        </span>
+        <CalendarIcon size={16} className="text-slate-400 shrink-0" />
+      </button>
+
+      {open && (
+        <div className={`absolute z-30 w-64 rounded-xl border border-slate-200 bg-white shadow-xl p-3 left-0 ${
+          openUp ? "bottom-full mb-2" : "top-full mt-2"
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-slate-800">
+              {monthNames[currentMonth]} {currentYear}
+            </span>
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={prevMonth}
+                className="p-1 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors cursor-pointer flex items-center justify-center"
+              >
+                <ChevronLeft size={16} className="stroke-[2.5]" />
+              </button>
+              <button
+                type="button"
+                onClick={nextMonth}
+                className="p-1 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-800 transition-colors cursor-pointer flex items-center justify-center"
+              >
+                <ChevronRight size={16} className="stroke-[2.5]" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-1.5">
+            {weekdays.map((wd) => (
+              <div key={wd}>{wd}</div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-center">
+            {cells.map((day, index) => {
+              if (day === null) {
+                return <div key={`empty-${index}`} className="aspect-square" />;
+              }
+
+              const cellDate = new Date(currentYear, currentMonth, day);
+              const isPast = cellDate < todayKolkata;
+              const isFutureLimit = cellDate > maxDate;
+              const isDisabled = isPast || isFutureLimit;
+
+              const selectedParts = value ? value.split('-').map(Number) : [];
+              const isSelected = selectedParts.length === 3 &&
+                selectedParts[0] === currentYear &&
+                selectedParts[1] === (currentMonth + 1) &&
+                selectedParts[2] === day;
+
+              return (
+                <button
+                  key={`day-${day}`}
+                  type="button"
+                  disabled={isDisabled}
+                  onClick={() => handleSelectDay(day)}
+                  className={`aspect-square rounded-md flex items-center justify-center text-xs font-bold transition-all ${
+                    isSelected
+                      ? "bg-[#004fcb] text-white"
+                      : isDisabled
+                      ? "text-slate-300 cursor-default"
+                      : "text-slate-700 hover:bg-blue-50 hover:text-[#004fcb] cursor-pointer"
+                  }`}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Slot {
   from: string;
@@ -80,35 +432,42 @@ const TimeSelect = ({ value, onChange }: { value: string, onChange: (val: string
     onChange(formatTime24(newState.hour, newState.minute, newState.period));
   };
 
+  const hourOptions = Array.from({ length: 12 }, (_, i) => {
+    const val = (i + 1).toString().padStart(2, '0');
+    return { value: val, label: val };
+  });
+
+  const minuteOptions = ["00", "15", "30", "45"].map((m) => ({
+    value: m,
+    label: m,
+  }));
+
+  const periodOptions = [
+    { value: "AM", label: "AM" },
+    { value: "PM", label: "PM" },
+  ];
+
   return (
-    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-md shadow-sm px-2 py-1">
-      <select
+    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+      <CustomSelect
         value={localState.hour}
-        onChange={(e) => handleChange('hour', e.target.value)}
-        className="bg-transparent text-sm font-medium focus:outline-none appearance-none cursor-pointer text-center w-8"
-      >
-        {Array.from({ length: 12 }, (_, i) => i + 1).map(h => (
-          <option key={h} value={h.toString().padStart(2, '0')}>{h.toString().padStart(2, '0')}</option>
-        ))}
-      </select>
-      <span className="text-gray-400 font-bold">:</span>
-      <select
+        options={hourOptions}
+        onChange={(val) => handleChange('hour', val)}
+        className="w-16"
+      />
+      <span className="text-slate-400 font-extrabold">:</span>
+      <CustomSelect
         value={localState.minute}
-        onChange={(e) => handleChange('minute', e.target.value)}
-        className="bg-transparent text-sm font-medium focus:outline-none appearance-none cursor-pointer text-center w-8"
-      >
-        {["00", "15", "30", "45"].map(m => (
-          <option key={m} value={m}>{m}</option>
-        ))}
-      </select>
-      <select
+        options={minuteOptions}
+        onChange={(val) => handleChange('minute', val)}
+        className="w-16"
+      />
+      <CustomSelect
         value={localState.period}
-        onChange={(e) => handleChange('period', e.target.value)}
-        className="bg-gray-50 text-xs font-bold rounded px-1 py-0.5 ml-1 focus:outline-none cursor-pointer text-gray-600"
-      >
-        <option value="AM">AM</option>
-        <option value="PM">PM</option>
-      </select>
+        options={periodOptions}
+        onChange={(val) => handleChange('period', val)}
+        className="w-20"
+      />
     </div>
   );
 };
@@ -124,6 +483,8 @@ const ExpertAvailability = () => {
       breakDates: []
     }
   });
+
+  const [selectedBlockDate, setSelectedBlockDate] = useState<string>("");
 
   const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
   const dayLabel: Record<string, string> = { mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday", sun: "Sunday" };
@@ -185,9 +546,16 @@ const ExpertAvailability = () => {
 
     setProfile((p) => {
       const weekly = { ...p.availability.weekly };
-      const defaultStart = "09:00";
+      const daySlots = weekly[day] || [];
+      let defaultStart = "09:00";
+      if (daySlots.length > 0) {
+        const lastSlot = daySlots[daySlots.length - 1];
+        if (lastSlot.to) {
+          defaultStart = lastSlot.to;
+        }
+      }
       const defaultEnd = calculateEndTime(defaultStart, p.availability.sessionDuration);
-      weekly[day] = [...(weekly[day] || []), { from: defaultStart, to: defaultEnd }];
+      weekly[day] = [...daySlots, { from: defaultStart, to: defaultEnd }];
       return { ...p, availability: { ...p.availability, weekly } };
     });
   };
@@ -238,7 +606,23 @@ const ExpertAvailability = () => {
   // --- Break Dates ---
   const addBreakDate = (dateStr: string) => {
     if (!dateStr) return;
-    if (profile.availability.breakDates.some(b => b.start === dateStr)) {
+
+    // Automatically correct the year based on month and day
+    const adjustedDateStr = autoAdjustDateYear(dateStr);
+
+    const todayStr = getKolkataTodayString();
+    const maxStr = getKolkataMaxString();
+
+    if (adjustedDateStr < todayStr) {
+      toast.error("Cannot block a past date.");
+      return;
+    }
+    if (adjustedDateStr > maxStr) {
+      toast.error("Cannot block a date more than 5 years in the future.");
+      return;
+    }
+
+    if (profile.availability.breakDates.some(b => b.start === adjustedDateStr)) {
       toast.error("Date already blocked");
       return;
     }
@@ -246,7 +630,7 @@ const ExpertAvailability = () => {
       ...p,
       availability: {
         ...p.availability,
-        breakDates: [...p.availability.breakDates, { start: dateStr, end: dateStr }]
+        breakDates: [...p.availability.breakDates, { start: adjustedDateStr, end: adjustedDateStr }]
       }
     }));
   };
@@ -290,6 +674,12 @@ const ExpertAvailability = () => {
 
   const saveAvailability = async () => {
     try {
+      const maxSessions = Number(profile.availability.maxPerDay);
+      if (isNaN(maxSessions) || maxSessions < 1 || maxSessions > 24) {
+        toast.error("Max Sessions / Day must be a number between 1 and 24.");
+        return;
+      }
+
       // Validate slots overlap
       const dayLabelsMap: Record<string, string> = {
         monday: "Monday",
@@ -436,14 +826,14 @@ const ExpertAvailability = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Default slot length (for schedule)</label>
-                  <select
-                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
-                    value={profile.availability.sessionDuration}
-                    onChange={(e) => setProfile(p => ({ ...p, availability: { ...p.availability, sessionDuration: Number(e.target.value) } }))}
-                  >
-                    <option value={30}>30 Minutes</option>
-                    <option value={60}>60 Minutes</option>
-                  </select>
+                  <CustomSelect
+                    value={String(profile.availability.sessionDuration)}
+                    options={[
+                      { value: "30", label: "30 Minutes" },
+                      { value: "60", label: "60 Minutes" },
+                    ]}
+                    onChange={(val) => setProfile(p => ({ ...p, availability: { ...p.availability, sessionDuration: Number(val) } }))}
+                  />
                   <p className="text-xs text-gray-400 mt-1">Used when generating time slots below.</p>
                 </div>
 
@@ -452,10 +842,21 @@ const ExpertAvailability = () => {
                   <input
                     type="number"
                     min="1"
-                    max="20"
+                    max="24"
                     className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                     value={profile.availability.maxPerDay}
-                    onChange={(e) => setProfile(p => ({ ...p, availability: { ...p.availability, maxPerDay: Number(e.target.value) } }))}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "") {
+                        setProfile(p => ({ ...p, availability: { ...p.availability, maxPerDay: "" as any } }));
+                        return;
+                      }
+                      const num = parseInt(val, 10);
+                      if (!isNaN(num)) {
+                        const clamped = Math.max(1, Math.min(24, num));
+                        setProfile(p => ({ ...p, availability: { ...p.availability, maxPerDay: clamped } }));
+                      }
+                    }}
                   />
                 </div>
               </div>
@@ -469,17 +870,19 @@ const ExpertAvailability = () => {
               </h3>
 
               <div className="flex gap-2 mb-4">
-                <input
-                  type="date"
-                  id="blockDateInput"
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none"
+                <CustomDatePicker
+                  value={selectedBlockDate}
+                  onChange={(val) => setSelectedBlockDate(val)}
+                  placeholder="dd-mm-yyyy"
                 />
                 <button
                   onClick={() => {
-                    const el = document.getElementById("blockDateInput") as HTMLInputElement;
-                    if (el.value) { addBreakDate(el.value); el.value = ""; }
+                    if (selectedBlockDate) {
+                      addBreakDate(selectedBlockDate);
+                      setSelectedBlockDate("");
+                    }
                   }}
-                  className="bg-gray-900 hover:bg-black text-white p-2 rounded-lg transition-colors"
+                  className="bg-gray-900 hover:bg-black text-white p-2 rounded-lg transition-colors flex items-center justify-center shrink-0 cursor-pointer"
                 >
                   <Plus size={18} />
                 </button>

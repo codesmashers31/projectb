@@ -18,6 +18,7 @@ const ExpertEducation = ({ onUpdate, isMissing }: ExpertEducationProps) => {
     const initialProfile = { education: [] as any[] };
     const [profile, setProfile] = useState(initialProfile);
     const [loading, setLoading] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
 
     const addEducation = () =>
         setProfile((p) => ({
@@ -33,35 +34,34 @@ const ExpertEducation = ({ onUpdate, isMissing }: ExpertEducationProps) => {
         });
     };
 
-    // ---------------- GET education ----------------
+    const fetchEducation = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get("/api/expert/education");
+
+            if (response.data.success) {
+                setProfile({ education: response.data.data });
+            }
+        } catch (err: any) {
+            if (err.response && err.response.status === 404) {
+                // ignore
+            } else {
+                console.error("Failed to fetch education:", err);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!userId) {
             setLoading(false);
             return;
         }
 
-        const fetchEducation = async () => {
-            try {
-                const response = await axios.get("/api/expert/education");
-
-                if (response.data.success) {
-                    setProfile({ education: response.data.data });
-                }
-            } catch (err: any) {
-                if (err.response && err.response.status === 404) {
-                    // ignore
-                } else {
-                    console.error("Failed to fetch education:", err);
-                }
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchEducation();
     }, [userId]);
 
-    // ---------------- Save / Upsert ----------------
     const saveEducation = async () => {
         if (!userId) {
             toast.error("User not logged in");
@@ -76,6 +76,7 @@ const ExpertEducation = ({ onUpdate, isMissing }: ExpertEducationProps) => {
 
             if (response.data.success) {
                 toast.success("Education saved successfully!");
+                setIsEditing(false);
                 if (onUpdate) onUpdate();
             } else {
                 toast.error("Failed to save education");
@@ -86,16 +87,13 @@ const ExpertEducation = ({ onUpdate, isMissing }: ExpertEducationProps) => {
         }
     };
 
-    // ---------------- DELETE education ----------------
     const removeEducation = async (idx: number) => {
         try {
-            // Optimistically update local state first
             setProfile((p) => ({
                 ...p,
                 education: p.education.filter((_, i) => i !== idx)
             }));
 
-            // Call DELETE endpoint to remove from DB
             const response = await axios.delete(
                 `/api/expert/education/${idx}`
             );
@@ -111,7 +109,6 @@ const ExpertEducation = ({ onUpdate, isMissing }: ExpertEducationProps) => {
         }
     };
 
-
     if (loading) return <p>Loading education...</p>;
 
     return (
@@ -124,9 +121,11 @@ const ExpertEducation = ({ onUpdate, isMissing }: ExpertEducationProps) => {
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">Add degrees and study periods</p>
                 </div>
-                <div>
-                    <SecondaryButton onClick={addEducation}>+ Add</SecondaryButton>
-                </div>
+                {isEditing && (
+                    <div>
+                        <SecondaryButton onClick={addEducation}>+ Add</SecondaryButton>
+                    </div>
+                )}
             </div>
 
             {profile.education.length === 0 ? (
@@ -135,19 +134,21 @@ const ExpertEducation = ({ onUpdate, isMissing }: ExpertEducationProps) => {
                 <div className="space-y-4">
                     {profile.education.map((edu: any, i: number) => (
                         <div key={i} className="border border-gray-200 rounded-lg p-10 relative bg-gray-50">
-                            <IconButton onClick={() => removeEducation(i)} className="absolute top-2 right-2">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </IconButton>
+                            {isEditing && (
+                                <IconButton onClick={() => removeEducation(i)} className="absolute top-2 right-2">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </IconButton>
+                            )}
 
                             <div className="space-y-3">
-                                <Input placeholder="Degree" value={edu.degree} onChange={(v) => updateEducation(i, "degree", v)} />
-                                <Input placeholder="Institution" value={edu.institution} onChange={(v) => updateEducation(i, "institution", v)} />
-                                <Input placeholder="Field of Study" value={edu.field} onChange={(v) => updateEducation(i, "field", v)} />
+                                <Input disabled={!isEditing} placeholder="Degree" value={edu.degree} onChange={(v) => updateEducation(i, "degree", v)} />
+                                <Input disabled={!isEditing} placeholder="Institution" value={edu.institution} onChange={(v) => updateEducation(i, "institution", v)} />
+                                <Input disabled={!isEditing} placeholder="Field of Study" value={edu.field} onChange={(v) => updateEducation(i, "field", v)} />
                                 <div className="grid grid-cols-2 gap-3">
-                                    <Input placeholder="Start Year" type="number" value={edu.start} onChange={(v) => updateEducation(i, "start", v)} />
-                                    <Input placeholder="End Year" type="number" value={edu.end} onChange={(v) => updateEducation(i, "end", v)} />
+                                    <Input disabled={!isEditing} placeholder="Start Year" type="number" value={edu.start} onChange={(v) => updateEducation(i, "start", v)} />
+                                    <Input disabled={!isEditing} placeholder="End Year" type="number" value={edu.end} onChange={(v) => updateEducation(i, "end", v)} />
                                 </div>
                             </div>
                         </div>
@@ -156,7 +157,23 @@ const ExpertEducation = ({ onUpdate, isMissing }: ExpertEducationProps) => {
             )}
 
             <div className="mt-6 flex justify-end">
-                <PrimaryButton onClick={saveEducation}>Save Changes</PrimaryButton>
+                {isEditing ? (
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                fetchEducation();
+                                setIsEditing(false);
+                            }}
+                            className="px-6 py-2 border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors cursor-pointer"
+                        >
+                            Cancel
+                        </button>
+                        <PrimaryButton onClick={saveEducation}>Save Changes</PrimaryButton>
+                    </div>
+                ) : (
+                    <PrimaryButton onClick={() => setIsEditing(true)}>Edit Education</PrimaryButton>
+                )}
             </div>
         </div>
     );

@@ -82,7 +82,7 @@ export function IconButton({ children, onClick, className = "" }: { children: Re
   );
 }
 
-export function Input({ label, type = "text", value = "", onChange, placeholder = "", className = "" }: { label?: string; type?: string; value?: string | number; onChange?: (val: string) => void; placeholder?: string; className?: string }) {
+export function Input({ label, type = "text", value = "", onChange, placeholder = "", className = "", disabled = false }: { label?: string; type?: string; value?: string | number; onChange?: (val: string) => void; placeholder?: string; className?: string; disabled?: boolean }) {
   return (
     <div>
       {label && <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>}
@@ -91,7 +91,8 @@ export function Input({ label, type = "text", value = "", onChange, placeholder 
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
-        className={`w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 ${className}`}
+        disabled={disabled}
+        className={`w-full border border-gray-300 rounded-md px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 disabled:bg-gray-50 disabled:text-gray-500 disabled:border-gray-200 ${className}`}
       />
     </div>
   );

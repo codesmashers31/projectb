@@ -103,21 +103,29 @@ function PremiumSelect({
   }, []);
 
   const selected = options.find((o) => o.value === value) || options[0];
+  const isDisabled = options.length <= 1;
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         type="button"
+        disabled={isDisabled}
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-left shadow-sm hover:border-blue-300 hover:bg-blue-50/30 transition-all"
+        className={`w-full flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-left shadow-sm transition-all ${
+          isDisabled 
+            ? "cursor-default text-slate-500 bg-slate-50/50" 
+            : "hover:border-blue-300 hover:bg-blue-50/30 cursor-pointer"
+        }`}
       >
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-800 truncate">{selected?.label || "Select option"}</p>
         </div>
-        <ChevronDown size={16} className={`text-slate-500 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        {!isDisabled && (
+          <ChevronDown size={16} className={`text-slate-500 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        )}
       </button>
 
-      {open && (
+      {open && !isDisabled && (
         <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-xl p-1.5 max-h-60 overflow-y-auto">
           {options.map((option) => {
             const isActive = option.value === value;
@@ -186,24 +194,56 @@ const BookSessionPage = () => {
   const durationOptions = useMemo<SessionDuration[]>(() => {
     const prof = profile || existingProfile;
     const allowed = prof?.availability?.allowedDurations;
-    if (Array.isArray(allowed) && allowed.length > 0) return allowed.filter(isSessionDuration);
-    const single = prof?.availability?.sessionDuration;
-    if (isSessionDuration(single)) return [single];
+    const allowedSet = new Set<SessionDuration>(
+      Array.isArray(allowed) ? allowed.filter(isSessionDuration) : []
+    );
+
+    // If allowedSet is empty, fallback to sessionDuration or [30]
+    if (allowedSet.size === 0) {
+      const single = prof?.availability?.sessionDuration;
+      if (isSessionDuration(single)) allowedSet.add(single);
+      else allowedSet.add(30);
+    }
+
+    const weekly = prof?.availability?.weekly || {};
+    const configuredDurations = new Set<SessionDuration>();
+
+    Object.values(weekly).forEach((slots: any) => {
+      if (Array.isArray(slots)) {
+        slots.forEach((slot: any) => {
+          if (slot.from && slot.to) {
+            const fromParts = slot.from.split(':');
+            const toParts = slot.to.split(':');
+            if (fromParts.length >= 2 && toParts.length >= 2) {
+              const fromMin = parseInt(fromParts[0], 10) * 60 + parseInt(fromParts[1], 10);
+              let toMin = parseInt(toParts[0], 10) * 60 + parseInt(toParts[1], 10);
+              if (toMin < fromMin) {
+                toMin += 24 * 60;
+              }
+              const diff = toMin - fromMin;
+              if (diff === 30 || diff === 60) {
+                configuredDurations.add(diff as SessionDuration);
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // If the expert has configured weekly slots, intersect with configuredDurations
+    // so we only show durations that actually have slots.
+    const finalDurations = Array.from(allowedSet).filter(d => 
+      configuredDurations.size === 0 || configuredDurations.has(d)
+    );
+
+    if (finalDurations.length > 0) return finalDurations.sort((a, b) => a - b);
     return [30];
-  }, [profile?.availability?.allowedDurations, profile?.availability?.sessionDuration, existingProfile]);
+  }, [profile?.availability?.allowedDurations, profile?.availability?.sessionDuration, profile?.availability?.weekly, existingProfile]);
 
   // Initial duration based on state profile or first load to avoid jumps
   const initialDuration = useMemo<SessionDuration>(() => {
-    const prof = existingProfile || profile;
-    const allowed = prof?.availability?.allowedDurations;
-    if (Array.isArray(allowed) && allowed.length > 0) {
-      const valid = allowed.filter(isSessionDuration);
-      if (valid.length > 0) return valid[0];
-    }
-    const single = prof?.availability?.sessionDuration;
-    if (isSessionDuration(single)) return single;
-    return 30;
-  }, [existingProfile, profile]);
+    return durationOptions[0] || 30;
+  }, [durationOptions]);
 
   const [sessionDuration, setSessionDuration] = useState<SessionDuration>(initialDuration);
 
@@ -564,6 +604,7 @@ const BookSessionPage = () => {
     // Filter out past dates for the current month (Kolkata time)
     const today = getKolkataToday();
     const weekly = profile?.availability?.weekly || {};
+    const breakDates = profile?.availability?.breakDates || [];
 
     // Find all days of the week (e.g., 'friday', 'mon') that have at least one slot configured
     const activeDays = Object.keys(weekly).filter(day => {
@@ -572,6 +613,12 @@ const BookSessionPage = () => {
     }).map(d => d.toLowerCase());
 
     return allDates.filter(date => {
+      const kolkataDateStr = getKolkataDateString(date); // "YYYY-MM-DD"
+      const isBreakDate = breakDates.some((breakDate: any) => {
+        return getKolkataDateString(breakDate.start) === kolkataDateStr;
+      });
+      if (isBreakDate) return false;
+
       // Compare calendar dates safely using Kolkata year/month
       if (date.getMonth() > today.getMonth() || date.getFullYear() > today.getFullYear()) {
         if (activeDays.length > 0) {
@@ -596,7 +643,7 @@ const BookSessionPage = () => {
       }
       return false;
     });
-  }, [currentMonth, profile?.availability?.weekly]);
+  }, [currentMonth, profile?.availability?.weekly, profile?.availability?.breakDates]);
 
   const nextMonth = () => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
@@ -684,6 +731,9 @@ const BookSessionPage = () => {
       if (endMinutes < currentMinutes) {
         endMinutes += 24 * 60;
       }
+
+      const rangeDuration = endMinutes - currentMinutes;
+      if (rangeDuration !== duration) return;
 
       while (currentMinutes + duration <= endMinutes) {
         const nowKolkata = getKolkataTimeParts();
