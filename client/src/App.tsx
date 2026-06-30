@@ -25,6 +25,7 @@ import DashboardIndex from "./pages/expert/Index";
 import ProfilePage from "./pages/expert/Profile";
 import SessionsPage from "./pages/expert/Sessions";
 import AvailabilityPage from "./pages/expert/Availability";
+import EditAvailabilityPage from "./pages/expert/EditAvailability";
 import SkillsPage from "./pages/expert/Skills";
 import SettingsPage from "./pages/expert/Settings";
 import WithdrawalPage from "./pages/expert/WithdrawalPage";
@@ -166,6 +167,7 @@ function AppRoutes() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="sessions" element={<SessionsPage />} />
             <Route path="availability" element={<ErrorBoundary><AvailabilityPage /></ErrorBoundary>} />
+            <Route path="availability/edit" element={<ErrorBoundary><EditAvailabilityPage /></ErrorBoundary>} />
             <Route path="skills" element={<SkillsPage />} />
             <Route path="withdraw" element={<WithdrawalPage />} />
             <Route path="settings" element={<SettingsPage />} />

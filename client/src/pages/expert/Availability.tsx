@@ -1,9 +1,9 @@
-import ExpertAvailability from "../../components/ExpertAvailability";
+import ViewExpertAvailability from "../../components/ViewExpertAvailability";
 
 export default function AvailabilityPage() {
   return (
     <div className="h-full">
-      <ExpertAvailability />
+      <ViewExpertAvailability />
     </div>
   );
 }

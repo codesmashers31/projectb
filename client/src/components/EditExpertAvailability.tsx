@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { PrimaryButton } from '../pages/ExpertDashboard';
 import { X, Copy, Plus, Clock, Calendar as CalendarIcon, CheckCircle2, ChevronDown, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 const formatKolkataDateString = (dateStr: string) => {
   if (!dateStr) return "";
@@ -473,8 +474,9 @@ const TimeSelect = ({ value, onChange }: { value: string, onChange: (val: string
 };
 
 
-const ExpertAvailability = () => {
+const EditExpertAvailability = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileState>({
     availability: {
       sessionDuration: 30,
@@ -580,8 +582,6 @@ const ExpertAvailability = () => {
   };
 
   const copyToAllDays = (sourceDay: string) => {
-    if (!confirm(`Copy schedule from ${dayLabel[sourceDay]} to all other days?`)) return;
-
     const sourceSlots = profile.availability.weekly[sourceDay] || [];
     setProfile((p) => {
       const weekly = { ...p.availability.weekly };
@@ -601,6 +601,17 @@ const ExpertAvailability = () => {
       weekly[day] = [];
       return { ...p, availability: { ...p.availability, weekly } };
     });
+  };
+
+  const clearAllDays = () => {
+    setProfile((p) => {
+      const weekly = { ...p.availability.weekly };
+      days.forEach(d => {
+        weekly[d] = [];
+      });
+      return { ...p, availability: { ...p.availability, weekly } };
+    });
+    toast.success("Cleared successfully");
   };
 
   // --- Break Dates ---
@@ -735,6 +746,7 @@ const ExpertAvailability = () => {
       await axios.put("/api/expert/availability", payload);
       await queryClient.invalidateQueries({ queryKey: ["expertProfile"] });
       toast.success("Availability saved successfully!");
+      navigate('/dashboard/availability');
     } catch (err) {
       console.error("Save error:", err);
       const message = (err as any)?.response?.data?.message || "Failed to save availability";
@@ -751,10 +763,18 @@ const ExpertAvailability = () => {
           <h1 className="text-xl font-bold text-gray-900">Availability & Scheduling</h1>
           <p className="text-sm text-gray-500 mt-1">Configure your weekly hours and session preferences.</p>
         </div>
-        <PrimaryButton onClick={saveAvailability} className="shadow-lg shadow-blue-500/20">
-          <CheckCircle2 size={18} className="mr-2" />
-          Save Changes
-        </PrimaryButton>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/dashboard/availability')}
+            className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            Cancel
+          </button>
+          <PrimaryButton onClick={saveAvailability}>
+            <CheckCircle2 size={18} className="mr-2" />
+            Save Changes
+          </PrimaryButton>
+        </div>
       </div>
 
       {/* Scrollable Content */}
@@ -765,7 +785,7 @@ const ExpertAvailability = () => {
           <div className="space-y-6">
 
             {/* Global Settings Card */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-5">
               <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
                 <Clock size={18} className="text-blue-600" />
                 Session Settings
@@ -863,7 +883,7 @@ const ExpertAvailability = () => {
             </div>
 
             {/* Blocked Dates Card */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 md:p-5">
               <h3 className="font-bold text-gray-900 flex items-center gap-2 mb-4">
                 <CalendarIcon size={18} className="text-red-500" />
                 Blocked Dates
@@ -908,9 +928,17 @@ const ExpertAvailability = () => {
           {/* Right Column: Weekly Schedule */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-100 bg-white flex justify-between items-center">
+              <div className="p-4 md:p-5 border-b border-gray-100 bg-white flex justify-between items-center">
                 <h3 className="font-bold text-gray-900">Weekly Schedule</h3>
-                <p className="text-xs text-gray-500 hidden sm:block">Set your recurring availability</p>
+                <div className="flex items-center gap-4">
+                  <p className="text-xs text-gray-500 hidden sm:block">Set your recurring availability</p>
+                  <button
+                    onClick={clearAllDays}
+                    className="text-xs font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm cursor-pointer"
+                  >
+                    Clear All
+                  </button>
+                </div>
               </div>
 
               <div className="divide-y divide-gray-100">
@@ -919,7 +947,7 @@ const ExpertAvailability = () => {
                   const isAvailable = slots.length > 0;
 
                   return (
-                    <div key={day} className={`p-6 transition-colors ${isAvailable ? 'bg-white' : 'bg-gray-50/50'}`}>
+                    <div key={day} className={`p-4 md:p-5 transition-colors ${isAvailable ? 'bg-white' : 'bg-gray-50/50'}`}>
                       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
 
                         {/* Day Label & Toggle */}
@@ -979,13 +1007,22 @@ const ExpertAvailability = () => {
                                 </button>
 
                                 {slots.length > 0 && (
-                                  <button
-                                    onClick={() => copyToAllDays(day)}
-                                    className="text-xs font-medium text-gray-400 hover:text-gray-600 flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors"
-                                    title="Copy this schedule to all other days"
-                                  >
-                                    <Copy size={12} /> Copy to all
-                                  </button>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => copyToAllDays(day)}
+                                      className="text-xs font-medium text-gray-400 hover:text-gray-600 flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded-md transition-colors"
+                                      title="Copy this schedule to all other days"
+                                    >
+                                      <Copy size={12} /> Copy to all
+                                    </button>
+                                    <button
+                                      onClick={() => clearDay(day)}
+                                      className="text-xs font-medium text-red-400 hover:text-red-600 flex items-center gap-1 hover:bg-red-50 px-2 py-1 rounded-md transition-colors"
+                                      title={`Clear all slots for ${dayLabel[day]}`}
+                                    >
+                                      <X size={12} /> Clear Day
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </div>
@@ -1006,4 +1043,4 @@ const ExpertAvailability = () => {
   );
 };
 
-export default ExpertAvailability;
+export default EditExpertAvailability;
